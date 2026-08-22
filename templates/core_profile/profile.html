@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Профіль{% endblock %}
+{% block content %}
+  <h1>Профіль {{ request.user.username }}</h1>
+  {% if profile.avatar.name %}
+    <img src="{{ profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="img-thumbnail" style="max-width: 240px;">
+  {% else %}
+    <p>Аватар не завантажено.</p>
+  {% endif %}
+  <h2>Біографія</h2>
+  {% if profile.bio %}
+    <p>{{ profile.bio }}</p>
+  {% else %}
+    <p>Біографія не заповнена.</p>
+  {% endif %}
+  <p><a class="btn btn-primary" href="{% url 'edit_profile' %}">Змінити профіль</a> | <a class="btn btn-danger" href="{% url 'delete_bio' %}">Видалити біографію</a></p>
+{% endblock %}
