@@ -3,7 +3,6 @@ from .forms import *
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django .contrib .auth .forms import AuthenticationForm 
-from core_profile.models import Profile
 # Create your views here.
 
 def register(request):
@@ -12,7 +11,6 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
-            Profile.objects.create(user=user)
             login(request, user)
             return redirect('home')
     return render(request, 'auth_system/register.html', {'form': form})

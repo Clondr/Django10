@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Редагування повідомлення{% endblock %}
+{% block content %}
+    <h1>Редагувати повідомлення</h1>
+    <form class="form" method="post" data-encrypted-edit-form data-key-url="{% url 'register-public-key' %}" data-recipient-public-key="{{ recipient_public_key|escape }}" data-sender-public-key="{{ message.sender_public_key|escape }}" data-ciphertext="{{ message.ciphertext }}" data-nonce="{{ message.nonce }}">
+        {% csrf_token %}
+        <div class="mb-3">
+        <label for="content" class="form-label">Зміст повідомлення</label>
+        <textarea class="form-control" id="content" name="content" rows="3">Расшифровка...</textarea>
+        <input type="hidden" name="ciphertext">
+        <input type="hidden" name="nonce">
+        <input type="hidden" name="public_key">
+        </div>
+        <button class="btn btn-primary" type="submit">Зберегти</button>
+        <div class="encryption-status small mt-2" role="status"></div>
+    </form>
+    {% endblock %}

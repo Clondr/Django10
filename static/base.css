@@ -122,6 +122,50 @@ body.dark-theme .card-header {
   padding-top: 1rem;
 }
 
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: 1rem 0;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+}
+
+.message-row.sent {
+  justify-content: flex-end;
+}
+
+.message-row.received {
+  justify-content: flex-start;
+}
+
+.message {
+  max-width: min(75%, 520px);
+  padding: .75rem 1rem;
+  border-radius: 1rem;
+  background: #e9ecef;
+}
+
+.message.sent {
+  background: #d9ecff;
+}
+
+.message-content {
+  margin-bottom: .35rem;
+  overflow-wrap: anywhere;
+}
+
+body.dark-theme .message {
+  background: #2b2b2b;
+}
+
+body.dark-theme .message.sent {
+  background: #17466b;
+}
+
 @media (max-width: 767.98px) {
   .app-layout {
     display: block;

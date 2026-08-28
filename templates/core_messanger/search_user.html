@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %} Пошук користувачів для чату {% endblock %}
+{% block content %}
+    <h1>Пошук користувачів для чату</h1>
+    <form method="get" action="{% url 'search-user-for-chat' %}">
+        <div class="mb-3">
+            <label for="q" class="form-label">Ім'я користувача</label>
+            <input type="text" class="form-control" id="q" name="q" value="{{ request.GET.q }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Пошук</button>
+    </form>
+
+    {% if users %}
+        <h2>Результати пошуку:</h2>
+        <ul class="list-group">
+            {% for user in users %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ user.user.username }}
+                    <a href="{% url 'create-chat' user.id %}" class="btn btn-success btn-sm">Почати чат</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% elif request.GET.q %}
+        <p>Користувачів не знайдено.</p>
+    {% endif %}
+{% endblock %}

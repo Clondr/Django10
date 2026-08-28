@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %} Список чатів {% endblock %}
+
+{% block content %}
+    <h1>Список чатів</h1>
+    <ul class="list-group">
+        {% for chat in chats %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <img src="{{ chat.other_participant.avatar.url }}" alt="Аватар {{ chat.other_participant.user.username }}" class="img-thumbnail" style="max-width: 100px;">
+            <a href="{% url 'chat-view' chat.id %}">
+            {{ chat.other_participant.user.username }}
+            </a>
+            <form method="post" action="{% url 'delete-chat' chat.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">Видалити чат</button>
+            </form>
+        </li>
+        {% empty %}
+        <li class="list-group-item">Немає чатів.</li>
+        <a href="{% url 'search-user-for-chat' %}" class="btn btn-primary mt-3">Почати новий чат</a>
+        {% endfor %}
+    </ul>
+    {% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %} Чат з {{ other_participant.user.username }}{% endblock %}
+{% block content %}
+    <div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);">
+        <h1>Чат з {{ other_participant.user.username }}</h1>
+        <div class="chat-messages flex-grow-1 overflow-auto">
+            {% for message in messages %}
+                <div class="message-row d-flex w-100 {% if message.sender == request.user.profile %}sent justify-content-end{% else %}received justify-content-start{% endif %}">
+                    <img src="{{ message.sender.avatar.url }}" alt="Аватар {{ message.sender.user.username }}" class="img-thumbnail" style="max-width: 100px;">
+                    <div class="message encrypted-message"
+                        data-ciphertext="{{ message.ciphertext }}"
+                        data-nonce="{{ message.nonce }}"
+                        data-sender-public-key="{{ message.sender_public_key|escape }}">
+                        <p class="message-content">Расшифровка...</p>
+                        <small>{{ message.timestamp|date:"H:i d.m.Y" }}</small>
+                        {% if message.sender == request.user.profile %}
+                            <a href="{% url 'edit-message' message.id %}" class="btn btn-sm btn-secondary">Редагувати</a>
+                            <a href="{% url 'delete-message' message.id %}" class="btn btn-sm btn-danger">Видалити</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p>Немає повідомлень у цьому чаті.</p>
+            {% endfor %}
+        </div>
+
+        <form class="form mt-auto" method="post" action="{% url 'send-message' chat.id %}" data-encrypted-message-form data-key-url="{% url 'register-public-key' %}" data-recipient-public-key="{{ recipient_public_key|escape }}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="content" class="form-label">Ваше повідомлення</label>
+                <textarea class="form-control" id="content" name="content" rows="3"></textarea>
+                <input type="hidden" name="ciphertext">
+                <input type="hidden" name="nonce">
+                <input type="hidden" name="public_key">
+            </div>
+            <button class="btn btn-primary" type="submit">Відправити</button>
+            <div class="encryption-status small mt-2" role="status"></div>
+        </form>
+    </div>
+
+{% endblock %}
