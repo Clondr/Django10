@@ -185,6 +185,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        // Формы чата отправляются через WebSocket (chat-socket.js), не через HTTP
+        if (form.dataset.websocketSend !== undefined) return;
         try {
             const keyPair = await encryptionReady;
             await registerEncryptionKey(form, keyPair.publicKey);

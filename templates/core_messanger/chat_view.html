@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %} Чат з {{ other_participant.user.username }}{% endblock %}
+{% load static %}
 {% block content %}
-    <div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);">
+    <div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);" id="message">
         <h1>Чат з {{ other_participant.user.username }}</h1>
         <div class="chat-messages flex-grow-1 overflow-auto">
             {% for message in messages %}
@@ -24,7 +25,7 @@
             {% endfor %}
         </div>
 
-        <form class="form mt-auto" method="post" action="{% url 'send-message' chat.id %}" data-encrypted-message-form data-key-url="{% url 'register-public-key' %}" data-recipient-public-key="{{ recipient_public_key|escape }}">
+        <form class="form mt-auto" method="post" data-websocket-send data-encrypted-message-form data-key-url="{% url 'register-public-key' %}" data-recipient-public-key="{{ recipient_public_key|escape }}">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="content" class="form-label">Ваше повідомлення</label>
@@ -37,5 +38,7 @@
             <div class="encryption-status small mt-2" role="status"></div>
         </form>
     </div>
-
+{{ chat.id|json_script:"room-name" }}
+{{ request.user.profile.id|json_script:"my-profile-id" }}
+<script src="{% static 'chat-socket.js' %}?v=4"></script>
 {% endblock %}

@@ -18,19 +18,21 @@ python3 -m venv venv
 For Windows:
 venv\Scripts\activate
 
-4.
 For Linux:
 source venv/bin/activate
 
-5.
-pip install django Pillow
-
 6.
-python manage.py migrate
+pip install -r requirements.txt
 
 7.
-python manage.py createsuperuser
+python manage.py makemigrations
 
 8.
+python manage.py migrate
+
+9.
+python manage.py createsuperuser
+
+10.
 python manage.py runserver
 ```
