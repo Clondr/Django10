@@ -49,6 +49,8 @@ def send_message(request, chat_id):
     if request.method == 'POST':
         ciphertext = request.POST.get('ciphertext')
         nonce = request.POST.get('nonce')
+        self_ciphertext = request.POST.get('self_ciphertext') or ''
+        self_nonce = request.POST.get('self_nonce') or ''
         public_key = request.POST.get('public_key') or request.user.profile.encryption_public_key
         try:
             public_key_data = json.loads(public_key)
@@ -74,6 +76,8 @@ def send_message(request, chat_id):
             ciphertext=ciphertext,
             nonce=nonce,
             sender_public_key=public_key,
+            self_ciphertext=self_ciphertext,
+            self_nonce=self_nonce,
         )
         chat.messages.add(message)
 
@@ -112,7 +116,9 @@ def edit_message(request, message_id):
             return HttpResponseBadRequest('Encrypted message is required')
         message.ciphertext = ciphertext
         message.nonce = nonce
-        message.save(update_fields=['ciphertext', 'nonce'])
+        message.self_ciphertext = request.POST.get('self_ciphertext') or ''
+        message.self_nonce = request.POST.get('self_nonce') or ''
+        message.save(update_fields=['ciphertext', 'nonce', 'self_ciphertext', 'self_nonce'])
         return redirect('chat-view', chat_id=chat.id)
 
     other_participant = chat.get_other_participant(request.user.profile)

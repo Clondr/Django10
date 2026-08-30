@@ -8,6 +8,8 @@ class Message(models.Model):
     ciphertext = models.TextField()
     nonce = models.CharField(max_length=32)
     sender_public_key = models.TextField()
+    self_ciphertext = models.TextField(blank=True, default='')
+    self_nonce = models.CharField(max_length=32, blank=True, default='')
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

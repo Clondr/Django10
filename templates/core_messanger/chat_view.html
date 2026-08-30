@@ -11,9 +11,14 @@
                     <div class="message encrypted-message"
                         data-ciphertext="{{ message.ciphertext }}"
                         data-nonce="{{ message.nonce }}"
+                        {% if message.sender == request.user.profile and message.self_ciphertext %}
+                        data-self-ciphertext="{{ message.self_ciphertext }}"
+                        data-self-nonce="{{ message.self_nonce }}"
+                        {% endif %}
                         data-sender-public-key="{{ message.sender_public_key|escape }}">
                         <p class="message-content">Расшифровка...</p>
                         <small>{{ message.timestamp|date:"H:i d.m.Y" }}</small>
+                        <!---->
                         {% if message.sender == request.user.profile %}
                             <a href="{% url 'edit-message' message.id %}" class="btn btn-sm btn-secondary">Редагувати</a>
                             <a href="{% url 'delete-message' message.id %}" class="btn btn-sm btn-danger">Видалити</a>
@@ -32,6 +37,8 @@
                 <textarea class="form-control" id="content" name="content" rows="3"></textarea>
                 <input type="hidden" name="ciphertext">
                 <input type="hidden" name="nonce">
+                <input type="hidden" name="self_ciphertext">
+                <input type="hidden" name="self_nonce">
                 <input type="hidden" name="public_key">
             </div>
             <button class="btn btn-primary" type="submit">Відправити</button>

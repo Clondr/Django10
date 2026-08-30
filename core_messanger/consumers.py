@@ -42,6 +42,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 ciphertext=data.get("ciphertext", ""),
                 nonce=data.get("nonce", ""),
                 sender_public_key=data.get("sender_public_key", ""),
+                self_ciphertext=data.get("self_ciphertext", ""),
+                self_nonce=data.get("self_nonce", ""),
             )
         except Exception:
             logger.exception("save_message failed for chat %s", self.chat_id)
@@ -58,6 +60,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "nonce": message.nonce,
                     "sender_public_key": message.sender_public_key,
                     "sender_id": message.sender_id,
+                    "self_ciphertext": message.self_ciphertext or "",
+                    "self_nonce": message.self_nonce or "",
                     "sender": str(message.sender),
                     "timestamp": message.timestamp.strftime("%H:%M %d.%m.%Y"),
                 },
@@ -74,7 +78,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return Chat.objects.filter(id=self.chat_id, participants__user=self.user).exists()
 
     @database_sync_to_async
-    def save_message(self, ciphertext, nonce, sender_public_key):
+    def save_message(self, ciphertext, nonce, sender_public_key, self_ciphertext="", self_nonce=""):
         from .models import Chat, Message
 
         if not ciphertext or not nonce:
@@ -91,6 +95,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             ciphertext=ciphertext,
             nonce=nonce,
             sender_public_key=sender_public_key,
+            self_ciphertext=self_ciphertext,
+            self_nonce=self_nonce,
         )
         chat.messages.add(message)
         return message

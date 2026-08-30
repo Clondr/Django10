@@ -132,21 +132,57 @@ async function deriveChatKey(privateKey, publicKeyJwk) {
     return crypto.subtle.deriveKey({ name: 'ECDH', public: publicKey }, privateKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
-async function decryptMessage(message, privateKey) {
-    const key = await deriveChatKey(privateKey, message.dataset.senderPublicKey);
+async function decryptMessage(message, privateKey, ownPublicKey) {
+    // Если есть self-копия (для отправителя) — используем её с собственным ключом
+    const useSelf = message.dataset.selfCiphertext && ownPublicKey;
+    const publicKeyRaw = useSelf ? JSON.stringify(ownPublicKey) : message.dataset.senderPublicKey;
+    const senderPublicKey = safeParseJsonAttribute(publicKeyRaw);
+    if (!senderPublicKey) throw new Error('invalid sender public key');
+    const key = await deriveChatKey(privateKey, JSON.stringify(senderPublicKey));
     const plaintext = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: bytesFromBase64(message.dataset.nonce) },
+        { name: 'AES-GCM', iv: bytesFromBase64(useSelf ? message.dataset.selfNonce : message.dataset.nonce) },
         key,
-        bytesFromBase64(message.dataset.ciphertext),
+        bytesFromBase64(useSelf ? message.dataset.selfCiphertext : message.dataset.ciphertext),
     );
     return new TextDecoder().decode(plaintext);
 }
 
-async function encryptMessage(text, privateKey, recipientPublicKey) {
-    const key = await deriveChatKey(privateKey, recipientPublicKey);
+// Возвращает оба шифротекста: для получателя и для себя (sender-копия),
+// чтобы отправитель мог прочитать собственное сообщение.
+async function encryptMessage(text, privateKey, recipientPublicKey, ownPublicKey) {
     const nonce = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, key, new TextEncoder().encode(text));
-    return { ciphertext: base64FromBytes(new Uint8Array(ciphertext)), nonce: base64FromBytes(nonce) };
+    const encoder = new TextEncoder();
+
+    const recipientKey = await deriveChatKey(privateKey, recipientPublicKey);
+    const recipientCiphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: nonce },
+        recipientKey,
+        encoder.encode(text),
+    );
+
+    // Если отправитель не передал свой публичный ключ — копируем шифротекст получателя.
+    if (!ownPublicKey) {
+        return {
+            ciphertext: base64FromBytes(new Uint8Array(recipientCiphertext)),
+            nonce: base64FromBytes(nonce),
+            self_ciphertext: null,
+            self_nonce: null,
+        };
+    }
+
+    const ownKey = await deriveChatKey(privateKey, ownPublicKey);
+    const ownCiphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: nonce },
+        ownKey,
+        encoder.encode(text),
+    );
+
+    return {
+        ciphertext: base64FromBytes(new Uint8Array(recipientCiphertext)),
+        nonce: base64FromBytes(nonce),
+        self_ciphertext: base64FromBytes(new Uint8Array(ownCiphertext)),
+        self_nonce: base64FromBytes(nonce),
+    };
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -195,9 +231,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 status.textContent = 'Получатель еще не активировал шифрование';
                 return;
             }
-            const encrypted = await encryptMessage(textField.value, keyPair.privateKey, form.dataset.recipientPublicKey);
+            const recipientPublicKey = safeParseJsonAttribute(form.dataset.recipientPublicKey);
+            if (!recipientPublicKey) {
+                status.textContent = 'Некорректный публичный ключ получателя';
+                return;
+            }
+            const encrypted = await encryptMessage(
+                textField.value,
+                keyPair.privateKey,
+                JSON.stringify(recipientPublicKey),
+                JSON.stringify(keyPair.publicKey),
+            );
             ciphertextField.value = encrypted.ciphertext;
             nonceField.value = encrypted.nonce;
+            const selfCipherField = form.querySelector('[name="self_ciphertext"]');
+            const selfNonceField = form.querySelector('[name="self_nonce"]');
+            if (selfCipherField) selfCipherField.value = encrypted.self_ciphertext || '';
+            if (selfNonceField) selfNonceField.value = encrypted.self_nonce || '';
             publicKeyField.value = JSON.stringify(keyPair.publicKey);
             if (!ciphertextField.value || !nonceField.value || !publicKeyField.value) {
                 throw new Error('Не удалось сформировать зашифрованные поля');
@@ -221,10 +271,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const keyPair = await encryptionReady;
         const messages = document.querySelectorAll('.encrypted-message');
         for (const message of messages) {
+            const contentEl = message.querySelector('.message-content');
+            if (!contentEl) continue;
             try {
-                message.querySelector('.message-content').textContent = await decryptMessage(message, keyPair.privateKey);
+                // Если это собственное сообщение пользователя (есть self-копия) —
+                // расшифровываем её своим публичным ключом
+                const ownKey = message.dataset.selfCiphertext ? keyPair.publicKey : undefined;
+                contentEl.textContent = await decryptMessage(message, keyPair.privateKey, ownKey);
             } catch (error) {
-                message.querySelector('.message-content').textContent = 'Сообщение недоступно для этого ключа';
+                contentEl.textContent = 'Сообщение недоступно для этого ключа';
             }
         }
 
@@ -281,3 +336,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+// ================== ИСПРАВЛЕНИЯ ДЛЯ ЧАТА ==================
+
+// Функция для корректного чтения JSON из data-атрибутов Django-шаблонов
+function safeParseJsonAttribute(value) {
+    if (!value) return null;
+    // Django |escape превращает кавычки в &quot; — распаковываем
+    let raw = value;
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = raw;
+    raw = textarea.value;
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}

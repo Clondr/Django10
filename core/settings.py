@@ -25,7 +25,14 @@ SECRET_KEY = 'django-insecure-hwxj45x#$&32ly)9!2h_y=!hi9*$f3q3jql3nx34ev00h6hrd9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS = [
+        'localhost', 
+        '127.0.0.1', 
+        '[::1]', 
+        '192.168.0.28',
+        'https://*.ngrok-free.dev',
+        'https://apterial-sandra-undevelopmentally.ngrok-free.dev',
+        'apterial-sandra-undevelopmentally.ngrok-free.dev']
 
 
 # Application definition
@@ -132,3 +139,17 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+# CSRF Configuration для port forwarding (ngrok)
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://apterial-sandra-undevelopmentally.ngrok-free.dev',
+    'https://*.ngrok-free.dev',
+]
+
+# Cookies configuration для ngrok (HTTPS)
+CSRF_COOKIE_SECURE = True  # Нужно для HTTPS (ngrok)
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'  # Для cross-origin з ngrok
+SESSION_COOKIE_SECURE = True  # Для HTTPS
+SESSION_COOKIE_SAMESITE = 'None'

@@ -35,6 +35,19 @@ async function onChatMessage(e) {
 
     try {
         const keyPair = await getEncryptionKeyPair();
+        // Для собственных сообщений используем self-копию и свой публичный ключ
+        const isMine = data.sender_id === myProfileId;
+        if (isMine && data.self_ciphertext) {
+            appendMessageRow(
+                data,
+                await decryptMessage(
+                    { dataset: { selfCiphertext: data.self_ciphertext, selfNonce: data.self_nonce, senderPublicKey: data.sender_public_key } },
+                    keyPair.privateKey,
+                    keyPair.publicKey,
+                ),
+            );
+            return;
+        }
         const plaintext = await decryptMessage(
             { dataset: { senderPublicKey: data.sender_public_key, nonce: data.nonce, ciphertext: data.ciphertext } },
             keyPair.privateKey
@@ -49,7 +62,10 @@ async function onChatMessage(e) {
 function appendMessageRow(data, plaintext) {
     if (!chatMessages) return;
 
-    const emptyNote = chatMessages.querySelector('p');
+    // Убираем только «пустую» заглушку — она является прямым потомком .chat-messages.
+    // Обычный querySelector('p') цеплял бы <p class="message-content"> первого сообщения
+    // и стирал его текст (баг: после нового сообщения первое сообщение «исчезало»).
+    const emptyNote = chatMessages.querySelector(':scope > p');
     if (emptyNote) emptyNote.remove();
 
     const mine = data.sender_id === myProfileId;
@@ -57,7 +73,15 @@ function appendMessageRow(data, plaintext) {
     row.className = 'message-row d-flex w-100 ' + (mine ? 'sent justify-content-end' : 'received justify-content-start');
 
     const messageElement = document.createElement('div');
-    messageElement.className = 'message';
+    messageElement.className = 'message encrypted-message';
+    messageElement.dataset.ciphertext = data.ciphertext;
+    messageElement.dataset.nonce = data.nonce;
+    messageElement.dataset.senderPublicKey = data.sender_public_key;
+    if (mine && data.self_ciphertext) {
+        messageElement.dataset.selfCiphertext = data.self_ciphertext;
+        messageElement.dataset.selfNonce = data.self_nonce;
+    }
+
     const text = document.createElement('p');
     text.className = 'message-content';
     text.textContent = plaintext;
@@ -65,8 +89,24 @@ function appendMessageRow(data, plaintext) {
     time.textContent = data.timestamp || '';
     messageElement.appendChild(text);
     messageElement.appendChild(time);
-    row.appendChild(messageElement);
 
+    // Кнопки редактировать/удалить — только для своих сообщений
+    if (mine && data.id) {
+        const editLink = document.createElement('a');
+        editLink.href = '/messanger/edit_message/' + data.id + '/';
+        editLink.className = 'btn btn-sm btn-secondary';
+        editLink.textContent = 'Редагувати';
+
+        const deleteLink = document.createElement('a');
+        deleteLink.href = '/messanger/delete_message/' + data.id + '/';
+        deleteLink.className = 'btn btn-sm btn-danger';
+        deleteLink.textContent = 'Видалити';
+
+        messageElement.appendChild(editLink);
+        messageElement.appendChild(deleteLink);
+    }
+
+    row.appendChild(messageElement);
     chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -84,15 +124,22 @@ if (chatForm && messageInput) {
         }
         try {
             const keyPair = await getEncryptionKeyPair();
-            const recipientPublicKey = chatForm.dataset.recipientPublicKey;
+            const recipientPublicKey = safeParseJsonAttribute(chatForm.dataset.recipientPublicKey);
             if (!recipientPublicKey) {
                 if (status) status.textContent = 'Получатель еще не активировал шифрование';
                 return;
             }
-            const encrypted = await encryptMessage(text, keyPair.privateKey, recipientPublicKey);
+            const encrypted = await encryptMessage(
+                text,
+                keyPair.privateKey,
+                JSON.stringify(recipientPublicKey),
+                JSON.stringify(keyPair.publicKey),
+            );
             chatSocket.send(JSON.stringify({
                 ciphertext: encrypted.ciphertext,
                 nonce: encrypted.nonce,
+                self_ciphertext: encrypted.self_ciphertext,
+                self_nonce: encrypted.self_nonce,
                 sender_public_key: JSON.stringify(keyPair.publicKey),
             }));
             messageInput.value = '';
