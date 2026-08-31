@@ -330,3 +330,147 @@ body.dark-theme .events-list::after { background: linear-gradient(180deg, rgba(0
 .home-hero { background: linear-gradient(135deg, rgba(0,123,255,0.06), rgba(102,16,242,0.04)); padding: 40px; border-radius: 12px; margin-top: 20px; }
 .home-hero h1 { font-size: 2.4rem; margin-bottom: 10px; }
 .home-hero p { color: #666; }
+
+/* ── Message attachments ── */
+.message {
+  overflow: hidden;
+}
+
+.message-attachment {
+  display: block;
+  margin-top: .5rem;
+  border-radius: .75rem;
+  max-width: 100%;
+}
+
+/* Изображения: фиксированная ширина внутри «пузыря», без растягивания */
+.attachment-image {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+
+/* Видео/аудио: не выходят за пределы сообщения */
+.attachment-video {
+  width: 100%;
+  max-width: 320px;
+  max-height: 300px;
+  background: #000;
+  outline: none;
+}
+
+.attachment-audio {
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Произвольный файл: компактная строка-ссылка */
+.attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: .5rem .75rem;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: .75rem;
+  color: inherit;
+  text-decoration: none;
+  font-size: .9rem;
+  max-width: 100%;
+}
+
+.attachment-file span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-file:hover {
+  background: rgba(0, 0, 0, 0.09);
+}
+
+body.dark-theme .attachment-file {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e9e9e9;
+}
+
+body.dark-theme .attachment-file:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-theme .attachment-image {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Контекстное меню сообщений ── */
+.message-context-menu {
+  position: fixed;
+  z-index: 1080;
+  min-width: 190px;
+  padding: .3rem;
+  display: none;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: .6rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.message-context-menu.visible {
+  display: flex;
+  animation: ctxMenuIn .12s ease-out;
+}
+
+@keyframes ctxMenuIn {
+  from { opacity: 0; transform: scale(.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: .5rem .75rem;
+  border: none;
+  border-radius: .45rem;
+  background: transparent;
+  color: #333;
+  font-size: .9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .12s ease;
+}
+
+.context-menu-item:hover {
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.context-menu-item.danger {
+  color: #c62828;
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(255, 65, 108, 0.12);
+}
+
+.context-menu-item .bi {
+  width: 1.1rem;
+  text-align: center;
+}
+
+body.dark-theme .message-context-menu {
+  background: #1f1f1f;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-theme .context-menu-item {
+  color: #e9e9e9;
+}
+
+body.dark-theme .context-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

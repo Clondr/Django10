@@ -16,13 +16,34 @@ def chat_view(request, chat_id):
         return redirect('home')  # Redirect if the user is not a participant
 
     messages = chat.messages.order_by('timestamp')
+    for message in messages:
+        message.file_kind = get_file_kind(message.file)
     other_participant = chat.get_other_participant(request.user.profile)
+    files = None
     return render(request, 'core_messanger/chat_view.html', {
         'chat': chat,
         'messages': messages,
+        'file': files,
         'other_participant': other_participant,
         'recipient_public_key': other_participant.encryption_public_key,
     })
+
+
+def get_file_kind(file):
+    """Определяет тип вложения по расширению файла."""
+    if not file:
+        return None
+    name = file.name.lower()
+    image_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg')
+    video_exts = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv')
+    audio_exts = ('.mp3', '.wav', '.ogg', '.m4a', '.flac')
+    if name.endswith(image_exts):
+        return 'image'
+    if name.endswith(video_exts):
+        return 'video'
+    if name.endswith(audio_exts):
+        return 'audio'
+    return 'other'
 
 
 @login_required
@@ -48,6 +69,7 @@ def send_message(request, chat_id):
 
     if request.method == 'POST':
         ciphertext = request.POST.get('ciphertext')
+        file = request.FILES.get('file')
         nonce = request.POST.get('nonce')
         self_ciphertext = request.POST.get('self_ciphertext') or ''
         self_nonce = request.POST.get('self_nonce') or ''
@@ -75,6 +97,7 @@ def send_message(request, chat_id):
             recipient=chat.get_other_participant(request.user.profile),
             ciphertext=ciphertext,
             nonce=nonce,
+            file=file,
             sender_public_key=public_key,
             self_ciphertext=self_ciphertext,
             self_nonce=self_nonce,

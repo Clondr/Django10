@@ -82,6 +82,8 @@ function appendMessageRow(data, plaintext) {
         messageElement.dataset.selfNonce = data.self_nonce;
     }
 
+    if (data.id) messageElement.dataset.messageId = data.id;
+
     const text = document.createElement('p');
     text.className = 'message-content';
     text.textContent = plaintext;
@@ -90,22 +92,6 @@ function appendMessageRow(data, plaintext) {
     messageElement.appendChild(text);
     messageElement.appendChild(time);
 
-    // Кнопки редактировать/удалить — только для своих сообщений
-    if (mine && data.id) {
-        const editLink = document.createElement('a');
-        editLink.href = '/messanger/edit_message/' + data.id + '/';
-        editLink.className = 'btn btn-sm btn-secondary';
-        editLink.textContent = 'Редагувати';
-
-        const deleteLink = document.createElement('a');
-        deleteLink.href = '/messanger/delete_message/' + data.id + '/';
-        deleteLink.className = 'btn btn-sm btn-danger';
-        deleteLink.textContent = 'Видалити';
-
-        messageElement.appendChild(editLink);
-        messageElement.appendChild(deleteLink);
-    }
-
     row.appendChild(messageElement);
     chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -113,28 +99,38 @@ function appendMessageRow(data, plaintext) {
 
 // --- Отправка через WebSocket вместо перезагрузки страницы ---
 if (chatForm && messageInput) {
+    const fileInput = chatForm.querySelector('input[type="file"]');
     chatForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const text = messageInput.value.trim();
         const status = chatForm.querySelector('.encryption-status');
-        if (!text) return;
-        if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        if (!text && !hasFile) return;
+        if (!hasFile && (!chatSocket || chatSocket.readyState !== WebSocket.OPEN)) {
             if (status) status.textContent = 'Соединение потеряно, пробуем переподключиться...';
             return;
         }
         try {
             const keyPair = await getEncryptionKeyPair();
             const recipientPublicKey = safeParseJsonAttribute(chatForm.dataset.recipientPublicKey);
-            if (!recipientPublicKey) {
-                if (status) status.textContent = 'Получатель еще не активировал шифрование';
-                return;
-            }
+
             const encrypted = await encryptMessage(
                 text,
                 keyPair.privateKey,
                 JSON.stringify(recipientPublicKey),
                 JSON.stringify(keyPair.publicKey),
             );
+            // С файлом отправляем обычным POST (WebSocket не передаёт файлы):
+            // шифрованные поля кладём в hidden-инпуты формы с enctype=multipart/form-data.
+            if (hasFile) {
+                chatForm.querySelector('[name=ciphertext]').value = encrypted.ciphertext;
+                chatForm.querySelector('[name=nonce]').value = encrypted.nonce;
+                chatForm.querySelector('[name=self_ciphertext]').value = encrypted.self_ciphertext;
+                chatForm.querySelector('[name=self_nonce]').value = encrypted.self_nonce;
+                chatForm.querySelector('[name=public_key]').value = JSON.stringify(keyPair.publicKey);
+                chatForm.submit();
+                return;
+            }
             chatSocket.send(JSON.stringify({
                 ciphertext: encrypted.ciphertext,
                 nonce: encrypted.nonce,
@@ -143,6 +139,7 @@ if (chatForm && messageInput) {
                 sender_public_key: JSON.stringify(keyPair.publicKey),
             }));
             messageInput.value = '';
+            if (fileInput) fileInput.value = '';
             if (status) status.textContent = '';
         } catch (err) {
             console.error(err);
@@ -150,3 +147,73 @@ if (chatForm && messageInput) {
         }
     });
 }
+
+// --- Контекстное меню сообщений (правый клик) ---
+(function initMessageContextMenu() {
+    let menu = document.getElementById('message-context-menu');
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'message-context-menu';
+        menu.className = 'message-context-menu';
+        document.body.appendChild(menu);
+    }
+
+    function hideMenu() {
+        menu.classList.remove('visible');
+    }
+
+    function buildMenu(messageEl) {
+        menu.innerHTML = '';
+        const messageId = messageEl.dataset.messageId;
+        const fileUrl = messageEl.dataset.fileUrl;
+        const fileName = messageEl.dataset.fileName || 'file';
+        const mine = !!messageEl.closest('.message-row.sent');
+
+        const addItem = (icon, label, onClick, danger) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'context-menu-item' + (danger ? ' danger' : '');
+            btn.innerHTML = '<span class="bi ' + icon + '"></span><span>' + label + '</span>';
+            btn.addEventListener('click', () => { hideMenu(); onClick(); });
+            menu.appendChild(btn);
+        };
+
+        if (fileUrl) {
+            addItem('bi-download', 'Скачати файл', () => {
+                const a = document.createElement('a');
+                a.href = fileUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+        }
+
+        if (mine && messageId) {
+            addItem('bi-pencil-square', 'Редагувати', () => {
+                window.location.href = '/messanger/edit_message/' + messageId + '/';
+            });
+            addItem('bi-trash', 'Видалити', () => {
+                window.location.href = '/messanger/delete_message/' + messageId + '/';
+            }, true);
+        }
+    }
+
+    document.addEventListener('contextmenu', (e) => {
+        const messageEl = e.target.closest('.message.encrypted-message');
+        if (!messageEl) { hideMenu(); return; }
+        e.preventDefault();
+        buildMenu(messageEl);
+        menu.classList.add('visible');
+        const rect = menu.getBoundingClientRect();
+        const x = Math.min(e.clientX, window.innerWidth - rect.width - 8);
+        const y = Math.min(e.clientY, window.innerHeight - rect.height - 8);
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+    });
+
+    document.addEventListener('click', hideMenu);
+    document.addEventListener('scroll', hideMenu, true);
+    window.addEventListener('resize', hideMenu);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMenu(); });
+})();

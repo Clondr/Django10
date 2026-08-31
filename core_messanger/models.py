@@ -11,6 +11,7 @@ class Message(models.Model):
     self_ciphertext = models.TextField(blank=True, default='')
     self_nonce = models.CharField(max_length=32, blank=True, default='')
     timestamp = models.DateTimeField(auto_now_add=True)
+    file = models.FileField(upload_to='message_files/', blank=True, null=True)
 
     def __str__(self):
         return f'Message from {self.sender} to {self.recipient} at {self.timestamp}'
