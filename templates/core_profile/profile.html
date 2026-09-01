@@ -2,6 +2,7 @@
 {% block title %}Профіль{% endblock %}
 {% block content %}
   <h1>Профіль {{ request.user.username }}</h1>
+  <h2>Id {{ request.user.id }}</h2>
   {% if profile.avatar.name %}
     <img src="{{ profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="img-thumbnail" style="max-width: 240px;">
   {% else %}

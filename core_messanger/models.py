@@ -1,6 +1,10 @@
 from django.db import models
 from core_profile.models import Profile
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+import os
 # Create your models here.
+
 
 class Message(models.Model):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='sent_messages')
@@ -16,6 +20,13 @@ class Message(models.Model):
     def __str__(self):
         return f'Message from {self.sender} to {self.recipient} at {self.timestamp}'
 
+# Signal to delete the file when the Message instance is deleted
+@receiver(post_delete, sender=Message)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    """Удаляет файл с диска при удалении объекта из БД."""
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)
 class Chat(models.Model):
     participants = models.ManyToManyField(Profile, related_name='chats')
     messages = models.ManyToManyField(Message, related_name='chats', blank=True)

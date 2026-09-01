@@ -3,11 +3,14 @@
 {% load static %}
 {% block content %}
 <div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);" id="message">
-    <h1>Чат з {{ other_participant.user.username }}</h1>
+    <h1>Чат з {{ other_participant.user.username }} <a href="{% url 'add-participant-to-chat' %}" class="btn btn-outline-primary btn-sm">Додати учасника</a></h1>
     <div class="chat-messages flex-grow-1 overflow-auto">
         {% for message in messages %}
-        <div
-            class="message-row d-flex w-100 {% if message.sender == request.user.profile %}sent justify-content-end{% else %}received justify-content-start{% endif %}">
+        <div class="message-row d-flex align-items-flex-end w-100 {% if message.sender == request.user.profile %}sent justify-content-end{% else %}received justify-content-start{% endif %}" style="gap: 0.5rem;">
+            
+            {% if message.sender.user.username != request.user.username %}
+            <img src="{{ message.sender.avatar.url }}" alt="Аватар {{ message.sender.user.username }}" class="message-avatar img-thumbnail" style="max-width: 50px; min-width: 50px; height: 50px; object-fit: cover;">
+            {% endif %}
 
             <div class="message encrypted-message" data-ciphertext="{{ message.ciphertext }}"
                 data-nonce="{{ message.nonce }}"
@@ -17,6 +20,9 @@
                 data-sender-public-key="{{ message.sender_public_key|escape }}">
                 <p class="message-content">Расшифровка...</p>
                 <small>{{ message.timestamp|date:"H:i d.m.Y" }}</small>
+                {% if message.sender.user.username != request.user.username %}
+                <p class="message-sender">{{ message.sender.user.username }}</p>
+                {% endif %}
                 {% if message.file %}
                 {% if message.file_kind == 'image' %}
                 <img src="{{ message.file.url }}" alt="Зображення" class="message-attachment attachment-image">

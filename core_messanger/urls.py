@@ -12,4 +12,6 @@ urlpatterns = [
     path('chat/<int:chat_id>/', views.chat_view, name='chat-view'),
     path('search_user_for_chat/', views.search_user_for_chat, name='search-user-for-chat'),
     path('encryption/public-key/', views.register_public_key, name='register-public-key'),
+    path('add_participant_to_chat/', views.add_participant_to_chat, name='add-participant-to-chat'),
+    path('add_participant_to_chat/<int:chat_id>/<int:participant_id>/', views.add_participant_to_chat, name='add-participant-to-chat-with-ids'),
 ]

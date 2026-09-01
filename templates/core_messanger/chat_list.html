@@ -9,7 +9,9 @@
             <img src="{{ chat.other_participant.avatar.url }}" alt="Аватар {{ chat.other_participant.user.username }}" class="img-thumbnail" style="max-width: 100px;">
             <a href="{% url 'chat-view' chat.id %}">
             {{ chat.other_participant.user.username }}
-            </a>
+            </a> 
+            <p class="mb-0">Id чату: {{ chat.id }}</p>
+            <p class="mb-0">{{ how_many_participants }} учасників</p>
             <form method="post" action="{% url 'delete-chat' chat.id %}" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger btn-sm">Видалити чат</button>

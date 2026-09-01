@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %} Додати учасника до чату {% endblock %}
+
+{% block content %}
+    <h1>Додати учасника до чату</h1>
+    <p>Ви можете додати учасника до чату.</p>
+    <form method="post" action="{% url 'add-participant-to-chat' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="chat_id" class="form-label">ID чату</label>
+            <input type="text" class="form-control" id="chat_id" name="chat_id" value="{{ chat.id }}" required>
+
+            <label for="participant_id" class="form-label">ID учасника</label>
+            <input type="text" class="form-control" id="participant_id" name="participant_id" value="{{ participant.id }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Додати учасника</button>
+    </form>
+{% endblock %}

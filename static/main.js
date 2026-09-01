@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const keyPair = await encryptionReady;
             await registerEncryptionKey(form, keyPair.publicKey);
             const textField = form.querySelector('[name="content"]');
+            
             if (!textField.value.trim() || !form.dataset.recipientPublicKey) {
                 status.textContent = 'Получатель еще не активировал шифрование';
                 return;

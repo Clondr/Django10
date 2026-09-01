@@ -1,5 +1,4 @@
 import json
-
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -57,9 +56,10 @@ def create_chat(request, recipient_id):
 @login_required
 def chat_list_view(request):
     chats = Chat.objects.filter(participants=request.user.profile)
+    how_many_participants = {chat.id: chat.participants.count() for chat in chats}
     for chat in chats:
         chat.other_participant = chat.get_other_participant(request.user.profile)
-    return render(request, 'core_messanger/chat_list.html', {'chats': chats})
+    return render(request, 'core_messanger/chat_list.html', {'chats': chats, 'how_many_participants': how_many_participants})
 
 @login_required
 def send_message(request, chat_id):
@@ -185,3 +185,42 @@ def search_user_for_chat(request):
     else:
         users = Profile.objects.none()
     return render(request, 'core_messanger/search_user.html', {'users': users})
+
+@login_required
+def add_participant_to_chat(request, chat_id=None, participant_id=None):
+    # Get IDs from URL parameters or request GET/POST data
+    chat_id = chat_id or request.GET.get('chat_id') or request.POST.get('chat_id')
+    participant_id = participant_id or request.GET.get('participant_id') or request.POST.get('participant_id')
+    
+    # Если параметры не предоставлены, показываем форму для их выбора
+    if not chat_id or not participant_id:
+        # Получаем чаты пользователя и всех других пользователей
+        user_chats = Chat.objects.filter(participants=request.user.profile)
+        all_users = Profile.objects.exclude(user=request.user)
+        
+        return render(request, 'core_messanger/add_participant_to_chat.html', {
+            'chats': user_chats,
+            'users': all_users,
+            'show_form': True
+        })
+    
+    # Если параметры предоставлены, обрабатываем добавление участника
+    chat = get_object_or_404(Chat, id=chat_id)
+    participant = get_object_or_404(Profile, id=participant_id)
+    
+    # Проверяем, что текущий пользователь является участником чата
+    if request.user.profile not in chat.participants.all():
+        return HttpResponseBadRequest('You are not a participant of this chat')
+    
+    # Проверяем, что участник уже не в чате
+    if participant in chat.participants.all():
+        return HttpResponseBadRequest('This user is already a participant of this chat')
+    
+    # Добавляем участника в чат
+    chat.participants.add(participant)
+    
+    return render(request, 'core_messanger/add_participant_to_chat.html', {
+        'chat': chat,
+        'participant': participant,
+        'success': True
+    })
