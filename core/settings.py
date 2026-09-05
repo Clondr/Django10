@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'core_auth',
     'core_profile',
     'core_messanger',
+    'core_posts',
 ]
 
 MIDDLEWARE = [

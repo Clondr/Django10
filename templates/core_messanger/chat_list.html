@@ -6,12 +6,21 @@
     <ul class="list-group">
         {% for chat in chats %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
+            {% if chat.participant_count > 2 %}
+            <div class="me-3">
+                <strong>Группа</strong>
+                <div class="small text-muted">
+                    {% for participant in chat.group_participants %}{{ participant.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </div>
+            </div>
+            {% else %}
             <img src="{{ chat.other_participant.avatar.url }}" alt="Аватар {{ chat.other_participant.user.username }}" class="img-thumbnail" style="max-width: 100px;">
+            {% endif %}
             <a href="{% url 'chat-view' chat.id %}">
-            {{ chat.other_participant.user.username }}
+            {% if chat.participant_count > 2 %}Группа ({{ chat.participant_count }} участника){% else %}{{ chat.other_participant.user.username }}{% endif %}
             </a> 
             <p class="mb-0">Id чату: {{ chat.id }}</p>
-            <p class="mb-0">{{ how_many_participants }} учасників</p>
+            <p class="mb-0">{{ chat.participant_count }} учасників</p>
             <form method="post" action="{% url 'delete-chat' chat.id %}" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger btn-sm">Видалити чат</button>

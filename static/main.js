@@ -54,6 +54,32 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme(getStoredTheme());
 
+    const groupMenu = document.querySelector('[data-group-menu]');
+    const groupMenuOpen = document.querySelector('[data-group-menu-open]');
+    const groupMenuBackdrop = document.querySelector('.group-menu-backdrop');
+    const groupMenuCloseButtons = document.querySelectorAll('[data-group-menu-close]');
+
+    if (groupMenu && groupMenuOpen) {
+        const setGroupMenuState = (isOpen) => {
+            groupMenu.classList.toggle('is-open', isOpen);
+            groupMenu.setAttribute('aria-hidden', String(!isOpen));
+            groupMenuOpen.setAttribute('aria-expanded', String(isOpen));
+            document.body.classList.toggle('group-menu-open', isOpen);
+            if (groupMenuBackdrop) groupMenuBackdrop.hidden = !isOpen;
+            if (isOpen) {
+                groupMenu.querySelector('[data-group-menu-close]:not([hidden])')?.focus();
+            } else {
+                groupMenuOpen.focus();
+            }
+        };
+
+        groupMenuOpen.addEventListener('click', () => setGroupMenuState(true));
+        groupMenuCloseButtons.forEach((element) => element.addEventListener('click', () => setGroupMenuState(false)));
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && groupMenu.classList.contains('is-open')) setGroupMenuState(false);
+        });
+    }
+
     if (btn) {
         btn.addEventListener('click', toggleTheme);
     }

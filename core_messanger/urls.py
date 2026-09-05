@@ -14,4 +14,6 @@ urlpatterns = [
     path('encryption/public-key/', views.register_public_key, name='register-public-key'),
     path('add_participant_to_chat/', views.add_participant_to_chat, name='add-participant-to-chat'),
     path('add_participant_to_chat/<int:chat_id>/<int:participant_id>/', views.add_participant_to_chat, name='add-participant-to-chat-with-ids'),
+    path('chat/<int:chat_id>/remove-participant/<int:participant_id>/', views.remove_participant_from_chat, name='remove-participant-from-chat'),
+    path('chat/<int:chat_id>/leave/', views.leave_chat, name='leave-chat'),
 ]

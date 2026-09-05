@@ -1,9 +1,92 @@
 {% extends "base.html" %}
-{% block title %} Чат з {{ other_participant.user.username }}{% endblock %}
+{% block title %}{% if participants|length > 2 %}Груповий чат{% else %}Чат з {{ other_participant.user.username }}{% endif %}{% endblock %}
 {% load static %}
 {% block content %}
 <div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);" id="message">
-    <h1>Чат з {{ other_participant.user.username }} <a href="{% url 'add-participant-to-chat' %}" class="btn btn-outline-primary btn-sm">Додати учасника</a></h1>
+    <header class="chat-header">
+        <div>
+            <p class="chat-eyebrow">{% if participants|length > 2 %}Група{% else %}Особистий чат{% endif %}</p>
+            <h1>{% if participants|length > 2 %}Груповий чат{% else %}Чат з {{ other_participant.user.username }}{% endif %}</h1>
+            <span class="chat-participant-count"><i class="bi bi-people" aria-hidden="true"></i> {{ participants|length }} учасників</span>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-circle chat-group-toggle" data-group-menu-open aria-controls="group-menu" aria-expanded="false" aria-label="Відкрити властивості чату" title="Властивості чату">
+            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+        </button>
+    </header>
+
+    <div class="group-menu-backdrop" data-group-menu-close hidden></div>
+    <aside class="group-menu" id="group-menu" data-group-menu role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="group-menu-title">
+        <div class="group-menu-panel">
+            <div class="group-menu-header">
+                <div>
+                    <p class="chat-eyebrow">Налаштування</p>
+                    <h2 id="group-menu-title">Властивості чату</h2>
+                </div>
+                <button type="button" class="btn btn-light btn-circle" data-group-menu-close aria-label="Закрити меню">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <dl class="group-properties">
+                <div><dt>Учасники</dt><dd>{{ participants|length }}</dd></div>
+                <div><dt>Шифрування</dt><dd><i class="bi bi-shield-check" aria-hidden="true"></i> Увімкнено</dd></div>
+                <div><dt>Творець</dt><dd>{{ creator.user.username }}</dd></div>
+            </dl>
+
+            {% if can_manage_participants %}
+            <section class="group-menu-section">
+                <h3>Додати учасника</h3>
+                <form method="post" action="{% url 'add-participant-to-chat' %}" class="group-add-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="chat_id" value="{{ chat.id }}">
+                    <label class="visually-hidden" for="participant_id">Користувач</label>
+                    <select class="form-select" id="participant_id" name="participant_id" required {% if not available_participants %}disabled{% endif %}>
+                        <option value="">Оберіть користувача</option>
+                        {% for participant in available_participants %}
+                        <option value="{{ participant.id }}">{{ participant.user.username }}</option>
+                        {% empty %}
+                        <option value="">Немає доступних користувачів</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-icon" {% if not available_participants %}disabled{% endif %}>
+                        <i class="bi bi-person-plus" aria-hidden="true"></i> Додати
+                    </button>
+                </form>
+            </section>
+            {% endif %}
+
+            <section class="group-menu-section">
+                <h3>Учасники</h3>
+                <ul class="group-participant-list">
+                    {% for participant in participants %}
+                    <li>
+                        <span class="participant-name"><i class="bi bi-person-circle" aria-hidden="true"></i> {{ participant.user.username }}</span>
+                        {% if participant == creator %}<span class="participant-role">Творець</span>{% endif %}
+                        {% if can_manage_participants and participant != creator %}
+                        <form method="post" action="{% url 'remove-participant-from-chat' chat.id participant.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Видалити {{ participant.user.username }}" title="Видалити учасника">
+                                <i class="bi bi-person-dash" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            {% if can_leave_group %}
+            <section class="group-menu-section">
+                <form method="post" action="{% url 'leave-chat' chat.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Покинути групу
+                    </button>
+                </form>
+            </section>
+            {% endif %}
+        </div>
+    </aside>
     <div class="chat-messages flex-grow-1 overflow-auto">
         {% for message in messages %}
         <div class="message-row d-flex align-items-flex-end w-100 {% if message.sender == request.user.profile %}sent justify-content-end{% else %}received justify-content-start{% endif %}" style="gap: 0.5rem;">
