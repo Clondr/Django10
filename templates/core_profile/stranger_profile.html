@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Профіль користувача{% endblock %}
+{% block content %}
+{% load static %}
+<div class="page-heading">
+    
+    <section class="panel panel-body">
+    <h2 class="section-title">Id {{ request.user.id }}</h2>
+    {% if profile.avatar.name %}
+        <img src="{{ profile.avatar.url }}" alt="Аватар {{ profile.user.username }}" class="max-h-60 max-w-full rounded-2xl object-cover shadow-sm">
+    {% else %}
+        <p>Аватар не завантажено.</p>
+    {% endif %}
+    <label class="form-label">Профіль користувача</label>
+    <p class="form-control">Користувач: {{ profile.user.username }}</p>
+        
+        {% if profile.user.first_name %}
+            <p class="form-control">Ім'я: {{ profile.user.first_name }}</p>
+        {% endif %}
+
+        {% if profile.user.last_name %}
+            <p class="form-control">Прізвище: {{ profile.user.last_name }}</p>
+        {% endif %}
+
+        {% if profile.bio %}
+            <p class="form-control">Біографія: {{ profile.bio }}</p>
+        {% endif %}
+
+        {% if request.user.id != profile.user.id %}
+            <div class="mt-4">
+                <a class="button-success button-small" href="{% url 'request-for-friendship' profile.user.id %}" class="btn btn-primary">Запросити в друзі</a>
+            </div>
+        {% endif %}
+
+    </section>
+</div>
+{% endblock %}

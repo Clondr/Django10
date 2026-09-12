@@ -1,18 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Профіль{% endblock %}
 {% block content %}
-  <h1>Профіль {{ request.user.username }}</h1>
-  <h2>Id {{ request.user.id }}</h2>
+  <div class="page-heading"><p class="eyebrow">Обліковий запис</p><h1 class="display-title">Профіль {{ request.user.username }}</h1></div>
+  <div class="profile-grid">
+  <section class="panel panel-body">
+  <h2 class="section-title">Id {{ request.user.id }}</h2>
   {% if profile.avatar.name %}
-    <img src="{{ profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="img-thumbnail" style="max-width: 240px;">
+    <img src="{{ profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="max-h-60 max-w-full rounded-2xl object-cover shadow-sm">
   {% else %}
     <p>Аватар не завантажено.</p>
   {% endif %}
-  <h2>Біографія</h2>
+  <h2 class="section-title">Біографія</h2>
   {% if profile.bio %}
     <p>{{ profile.bio }}</p>
   {% else %}
     <p>Біографія не заповнена.</p>
   {% endif %}
-  <p><a class="btn btn-primary" href="{% url 'edit-profile' %}">Змінити профіль</a> | <a class="btn btn-danger" href="{% url 'delete-bio' %}">Видалити біографію</a></p>
-{% endblock %}
+  <p class="action-row"><a class="button-primary" href="{% url 'edit-profile' %}">Змінити профіль</a><a class="button-danger" href="{% url 'delete-bio' %}">Видалити біографію</a></p>
+  </section>
+  <section class="panel panel-body">
+  <h2 class="section-title">Друзі</h2>
+  {% if profile.friends.exists %}
+    <ul class="list-stack">
+      {% for friend in profile.friends.all %}
+        <li class="list-item">
+          {{ friend.user.username }}
+          <a href="{% url 'remove-friend' friend.id %}" class="button-danger button-small">Видалити з друзів</a>
+          <a href="{% url 'profile-view' friend.id %}" class="button-primary button-small">Переглянути профіль</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>У вас немає друзів.</p>
+  {% endif %}
+  <p><a class="button-primary" href="{% url 'search-user-for-chat' %}">Пошук користувачів для чату</a></p>
+  </section></div>
+  {% endblock %}

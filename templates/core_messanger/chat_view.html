@@ -2,18 +2,17 @@
 {% block title %}{% if participants|length > 2 %}Груповий чат{% else %}Чат з {{ other_participant.user.username }}{% endif %}{% endblock %}
 {% load static %}
 {% block content %}
-<div class="chat-page d-flex flex-column" style="min-height: calc(100vh - 65px - 1rem - 1rem);" id="message">
+<div class="chat-page flex min-h-[calc(100vh-8rem)] flex-col" id="message">
     <header class="chat-header">
         <div>
             <p class="chat-eyebrow">{% if participants|length > 2 %}Група{% else %}Особистий чат{% endif %}</p>
             <h1>{% if participants|length > 2 %}Груповий чат{% else %}Чат з {{ other_participant.user.username }}{% endif %}</h1>
-            <span class="chat-participant-count"><i class="bi bi-people" aria-hidden="true"></i> {{ participants|length }} учасників</span>
+                <span class="chat-participant-count"><i class="bi bi-people" aria-hidden="true"></i> {{ participants|length }} учасників</span>
         </div>
-        <button type="button" class="btn btn-outline-primary btn-circle chat-group-toggle" data-group-menu-open aria-controls="group-menu" aria-expanded="false" aria-label="Відкрити властивості чату" title="Властивості чату">
+        <button type="button" class="btn-circle chat-group-toggle border border-teal-700/30 text-teal-800 dark:border-teal-300/30 dark:text-teal-200" data-group-menu-open aria-controls="group-menu" aria-expanded="false" aria-label="Відкрити властивості чату" title="Властивості чату">
             <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
         </button>
     </header>
-
     <div class="group-menu-backdrop" data-group-menu-close hidden></div>
     <aside class="group-menu" id="group-menu" data-group-menu role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="group-menu-title">
         <div class="group-menu-panel">
@@ -22,7 +21,7 @@
                     <p class="chat-eyebrow">Налаштування</p>
                     <h2 id="group-menu-title">Властивості чату</h2>
                 </div>
-                <button type="button" class="btn btn-light btn-circle" data-group-menu-close aria-label="Закрити меню">
+                <button type="button" class="btn-circle border border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-100" data-group-menu-close aria-label="Закрити меню">
                     <i class="bi bi-x-lg" aria-hidden="true"></i>
                 </button>
             </div>
@@ -39,8 +38,8 @@
                 <form method="post" action="{% url 'add-participant-to-chat' %}" class="group-add-form">
                     {% csrf_token %}
                     <input type="hidden" name="chat_id" value="{{ chat.id }}">
-                    <label class="visually-hidden" for="participant_id">Користувач</label>
-                    <select class="form-select" id="participant_id" name="participant_id" required {% if not available_participants %}disabled{% endif %}>
+                    <label class="sr-only" for="participant_id">Користувач</label>
+                    <select class="input-control" id="participant_id" name="participant_id" required {% if not available_participants %}disabled{% endif %}>
                         <option value="">Оберіть користувача</option>
                         {% for participant in available_participants %}
                         <option value="{{ participant.id }}">{{ participant.user.username }}</option>
@@ -48,7 +47,7 @@
                         <option value="">Немає доступних користувачів</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-primary btn-icon" {% if not available_participants %}disabled{% endif %}>
+                    <button type="submit" class="button-primary btn-icon" {% if not available_participants %}disabled{% endif %}>
                         <i class="bi bi-person-plus" aria-hidden="true"></i> Додати
                     </button>
                 </form>
@@ -65,7 +64,7 @@
                         {% if can_manage_participants and participant != creator %}
                         <form method="post" action="{% url 'remove-participant-from-chat' chat.id participant.id %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Видалити {{ participant.user.username }}" title="Видалити учасника">
+                            <button type="submit" class="button-danger button-small button-outline" aria-label="Видалити {{ participant.user.username }}" title="Видалити учасника">
                                 <i class="bi bi-person-dash" aria-hidden="true"></i>
                             </button>
                         </form>
@@ -79,7 +78,7 @@
             <section class="group-menu-section">
                 <form method="post" action="{% url 'leave-chat' chat.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-danger w-100">
+                    <button type="submit" class="button-danger button-outline w-full">
                         <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Покинути групу
                     </button>
                 </form>
@@ -87,12 +86,12 @@
             {% endif %}
         </div>
     </aside>
-    <div class="chat-messages flex-grow-1 overflow-auto">
-        {% for message in messages %}
-        <div class="message-row d-flex align-items-flex-end w-100 {% if message.sender == request.user.profile %}sent justify-content-end{% else %}received justify-content-start{% endif %}" style="gap: 0.5rem;">
+    <div class="chat-messages min-h-0 flex-1 overflow-auto">
+        {% for message in chat_messages %}
+        <div class="message-row items-end gap-2 {% if message.sender == request.user.profile %}sent{% else %}received{% endif %}">
             
             {% if message.sender.user.username != request.user.username %}
-            <img src="{{ message.sender.avatar.url }}" alt="Аватар {{ message.sender.user.username }}" class="message-avatar img-thumbnail" style="max-width: 50px; min-width: 50px; height: 50px; object-fit: cover;">
+            <img src="{{ message.sender.avatar.url }}" alt="Аватар {{ message.sender.user.username }}" class="message-avatar h-12 w-12 min-w-12 rounded-full object-cover">
             {% endif %}
 
             <div class="message encrypted-message" data-ciphertext="{{ message.ciphertext }}"
@@ -127,26 +126,32 @@
             </div>
         </div>
         {% empty %}
-        <p>Немає повідомлень у цьому чаті.</p>
+        <p class="muted-copy">Немає повідомлень у цьому чаті.</p>
         {% endfor %}
     </div>
 
-    <form class="form mt-auto" method="post" enctype="multipart/form-data" action="{% url 'send-message' chat.id %}"
+    <form class="form mt-auto pt-4" method="post" enctype="multipart/form-data" action="{% url 'send-message' chat.id %}"
         data-encrypted-message-form data-key-url="{% url 'register-public-key' %}"
         data-recipient-public-key="{{ recipient_public_key|escape }}">
         {% csrf_token %}
-        <div class="mb-3">
-            <label for="content" class="form-label">Ваше повідомлення</label>
-            <textarea class="form-control" id="content" name="content" rows="3"></textarea>
+        <div class="field-group">
+            <label for="content" class="field-label">Ваше повідомлення</label>
+            <textarea class="input-control" id="content" name="content" rows="3"></textarea>
             <input type="hidden" name="ciphertext">
             <input type="hidden" name="nonce">
-            <input type="file" name="file" class="form-control mt-2">
+            
+            <input type="file" name="file" class="w-full 
+            text-sm text-gray-500 file:mr-3 file:py-1 
+            file:px-3 file:rounded-lg file:border-0 
+            file:bg-slate-50 file:text-slate-600 
+            hover:file:bg-slate-100">
+            
             <input type="hidden" name="self_ciphertext">
             <input type="hidden" name="self_nonce">
             <input type="hidden" name="public_key">
         </div>
-        <button class="btn btn-primary" type="submit">Відправити</button>
-        <div class="encryption-status small mt-2" role="status"></div>
+        <button class="button-primary" type="submit">Відправити</button>
+        <div class="encryption-status muted-copy" role="status"></div>
     </form>
 </div>
 {{ chat.id|json_script:"room-name" }}

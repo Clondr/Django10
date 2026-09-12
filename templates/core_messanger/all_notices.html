@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Усі сповіщення{% endblock %}
+{% block content %}
+  <h1 class="display-title">Усі повідомлення</h1>
+  <ul class="list-group">
+    {% for notice in notices %}
+      <li class="list-group-item {% if not notice.is_read %}font-weight-bold{% endif %}">
+        {{ notice.message }}
+        {% if notice.type_notice == 'friend_request' and notice.request_for_friendship %}
+          <a href="{% url 'accept-friend-request' notice.request_for_friendship.id %}" class="button-success button-small">Прийняти</a>
+          <a href="{% url 'decline-friend-request' notice.request_for_friendship.id %}" class="button-danger button-small">Відхилити</a>
+        {% else %}
+          <form method="post" action="{% url 'mark-notice-as-read' notice.id %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="button-secondary button-small"{% if notice.is_read %} disabled{% endif %}>Позначити як прочитане</button>
+        </form>
+        <form method="post" action="{% url 'delete-notice' notice.id %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="button-danger button-small">Видалити</button>
+        </form>
+          {% endif %}
+        <a href="{% url 'profile-view' notice.request_for_friendship.sender.id %}" class="button-primary button-small">Переглянути профіль</a>
+        <a href="{% url 'chat-view' notice.request_for_friendship.sender.id %}" class="button-primary button-small">Перейти до чату</a>
+        <span class="text-muted float-right">{{ notice.created_at|date:"d M Y H:i" }}</span>
+      </li>
+    {% empty %}
+      <li class="list-group-item">Немає повідомлень.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -2,33 +2,33 @@
 {% block title %} Список чатів {% endblock %}
 
 {% block content %}
-    <h1>Список чатів</h1>
-    <ul class="list-group">
+    <h1 class="display-title">Список чатів</h1>
+    <ul class="list-stack mt-6">
         {% for chat in chats %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <li class="list-item chat-list-item">
             {% if chat.participant_count > 2 %}
-            <div class="me-3">
+            <div class="chat-list-meta">
                 <strong>Группа</strong>
-                <div class="small text-muted">
+                <div class="muted-copy">
                     {% for participant in chat.group_participants %}{{ participant.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
                 </div>
             </div>
             {% else %}
-            <img src="{{ chat.other_participant.avatar.url }}" alt="Аватар {{ chat.other_participant.user.username }}" class="img-thumbnail" style="max-width: 100px;">
+            <img src="{{ chat.other_participant.avatar.url }}" alt="Аватар {{ chat.other_participant.user.username }}" class="h-14 w-14 rounded-full object-cover">
             {% endif %}
-            <a href="{% url 'chat-view' chat.id %}">
+            <a class="button-primary button-small" href="{% url 'chat-view' chat.id %}">
             {% if chat.participant_count > 2 %}Группа ({{ chat.participant_count }} участника){% else %}{{ chat.other_participant.user.username }}{% endif %}
             </a> 
-            <p class="mb-0">Id чату: {{ chat.id }}</p>
-            <p class="mb-0">{{ chat.participant_count }} учасників</p>
+            <p class="muted-copy">Id чату: {{ chat.id }}</p>
+            <p class="muted-copy">{{ chat.participant_count }} учасників</p>
             <form method="post" action="{% url 'delete-chat' chat.id %}" style="display: inline;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger btn-sm">Видалити чат</button>
+            <button type="submit" class="button-danger button-small">Видалити чат</button>
             </form>
         </li>
         {% empty %}
-        <li class="list-group-item">Немає чатів.</li>
-        <a href="{% url 'search-user-for-chat' %}" class="btn btn-primary mt-3">Почати новий чат</a>
+        <li class="list-item">Немає чатів.</li>
+        <a href="{% url 'search-user-for-chat' %}" class="button-primary mt-4 inline-flex">Почати новий чат</a>
         {% endfor %}
     </ul>
     {% endblock %}

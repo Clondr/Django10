@@ -5,7 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: ['class', '[data-theme="dark"]'],
+        theme: {
+          extend: {
+            colors: { ink: '#172033', accent: '#0f766e', coral: '#e76f51' },
+            fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{% static 'base.css' %}">
     <link rel="icon" type="image/jpg" href="{% static 'favicon.jpg' %}"
@@ -16,14 +30,12 @@
       {% csrf_token %}
     </form>
   {% endif %}
-  <nav class="navbar navbar-expand-lg bg-body border-bottom">
-    <div class="container-fluid">
-      <div class="ms-auto">
-        <button id="theme-toggle" class="btn btn-outline-primary btn-circle" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Тема" type="button" aria-label="Переключити тему" aria-pressed="false">
+  <nav class="navbar border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-950/80">
+    <div class="flex w-full justify-end">
+        <button id="theme-toggle" class="btn-circle border border-teal-700/30 text-teal-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-50 dark:border-teal-300/30 dark:text-teal-200 dark:hover:bg-white/10" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Тема" type="button" aria-label="Переключити тему" aria-pressed="false">
           <i class="bi bi-moon-stars-fill theme-moon" aria-hidden="true"></i>
           <i class="bi bi-sun-fill theme-sun" aria-hidden="true"></i>
         </button>
-      </div>
     </div>
   </nav>
 
@@ -35,7 +47,7 @@
       </a>
       <div class="sidebar-user">
         {% if request.user.is_authenticated and request.user.profile.avatar.name %}
-          <img src="{{ request.user.profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="img-thumbnail" style="max-width: 50px;">
+          <img src="{{ request.user.profile.avatar.url }}" alt="Аватар {{ request.user.username }}" class="h-10 w-10 rounded-full object-cover ring-2 ring-teal-100 dark:ring-teal-900">
         {% else %}
           <i class="bi bi-person-circle" aria-hidden="true"></i>
         {% endif %}
@@ -55,6 +67,10 @@
             <i class="bi bi-chat-dots" aria-hidden="true"></i>
             <span>Чати</span>
           </a>
+          <a class="sidebar-link" href="{% url 'all-notices' %}">
+            <i class="bi bi-bell" aria-hidden="true"></i>
+            <span>Повідомлення</span>
+          </a>
           <a class="sidebar-link" href="{% url 'search-user-for-chat' %}">
             <i class="bi bi-search" aria-hidden="true"></i>
             <span>Пошук користувачів</span>
@@ -72,12 +88,18 @@
       </nav>
     </aside>
 
-    <main class="container mb-3 content-area">
+    <main class="container mb-3 content-area px-5 py-6 lg:px-10">
+      {% if messages %}
+        <div class="mb-4 space-y-2" aria-live="polite">
+          {% for message in messages %}
+            <div class="panel panel-body" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'main.js' %}?v=4"></script>
 </body>
 </html>

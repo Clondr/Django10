@@ -62,7 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "sender_id": message.sender_id,
                     "self_ciphertext": message.self_ciphertext or "",
                     "self_nonce": message.self_nonce or "",
-                    "sender": str(message.sender),
+                    "sender": message.sender.user.username,
                     "timestamp": message.timestamp.strftime("%H:%M %d.%m.%Y"),
                 },
             },

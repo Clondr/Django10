@@ -1,11 +1,14 @@
 import json
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.db import transaction
+from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.views.decorators.http import require_POST
 from .models import *
-from core_profile.models import Profile
+from core_profile.models import *
+from django.utils import timezone
 # Create your views here.
 
 
@@ -36,7 +39,7 @@ def chat_view(request, chat_id):
     files = None
     return render(request, 'core_messanger/chat_view.html', {
         'chat': chat,
-        'messages': messages,
+        'chat_messages': messages,
         'file': files,
         'other_participant': other_participant,
         'recipient_public_key': (other_participant or request.user.profile).encryption_public_key,
@@ -68,8 +71,17 @@ def get_file_kind(file):
 @login_required
 def create_chat(request, recipient_id):
     recipient = get_object_or_404(Profile, id=recipient_id)
-    chat, created = Chat.objects.get_or_create(participants__in=[request.user.profile, recipient])
-    if created:
+    chat = Chat.objects.filter(
+        participants=request.user.profile,
+    ).filter(
+        participants=recipient,
+    ).annotate(
+        participant_count=Count('participants', distinct=True),
+    ).filter(
+        participant_count=2,
+    ).order_by('id').first()
+    if chat is None:
+        chat = Chat.objects.create()
         chat.participants.add(request.user.profile, recipient)
     return redirect('chat-view', chat_id=chat.id)
 
@@ -143,7 +155,10 @@ def delete_message(request, message_id):
 def delete_chat(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id)
     if request.user.profile in chat.participants.all():
-        chat.delete()
+        # Удаляем все сообщения и сам чат в рамках атомарной транзакции
+        with transaction.atomic():
+            chat.messages.all().delete()
+            chat.delete()
     return redirect('chat-list-view')
 
 @login_required
@@ -287,3 +302,95 @@ def leave_chat(request, chat_id):
             chat.delete()
 
     return redirect('chat-list-view')
+
+@login_required
+def request_for_friendship(request, recipient_id):
+    recipient = get_object_or_404(Profile, id=recipient_id)
+    if recipient == request.user.profile:
+        return HttpResponseBadRequest('You cannot send a friend request to yourself')
+
+    existing_request = FriendRequest.objects.filter(sender=request.user.profile, recipient=recipient).first()
+    if existing_request:
+        return HttpResponseBadRequest('Friend request already sent')
+
+    existing_friendship = Friendship.objects.filter(
+        (Q(user1=request.user.profile) & Q(user2=recipient)) |
+        (Q(user1=recipient) & Q(user2=request.user.profile))
+    ).first()
+    if existing_friendship:
+        return HttpResponseBadRequest('You are already friends with this user')
+
+    friend_request = FriendRequest.objects.create(sender=request.user.profile, recipient=recipient)
+    Notice.objects.create(recipient=recipient, message=f'You have a new friend request from {request.user.username}', 
+                          request_for_friendship=friend_request)
+    return redirect('profile-view', id=recipient.id)
+
+@login_required
+def accept_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id)
+    if friend_request.recipient != request.user.profile:
+        return HttpResponseForbidden('You are not authorized to accept this friend request')
+
+    friendship_exists = Friendship.objects.filter(
+        (Q(user1=friend_request.sender) & Q(user2=friend_request.recipient)) |
+        (Q(user1=friend_request.recipient) & Q(user2=friend_request.sender))
+    ).exists()
+    if friendship_exists:
+        Notice.objects.filter(request_for_friendship=friend_request).delete()
+        messages.warning(request, 'Цей користувач вже у вас в друзях.')
+        return redirect('profile')
+
+    with transaction.atomic():
+        friend_request.is_accepted = True
+        friend_request.when_was_accepted = timezone.now()
+        friend_request.save(update_fields=['is_accepted', 'when_was_accepted'])
+        Friendship.objects.create(user1=friend_request.sender, user2=friend_request.recipient)
+        friend_request.sender.friends.add(friend_request.recipient)
+        Notice.objects.filter(request_for_friendship=friend_request).delete()
+
+    return redirect('profile-view', id=friend_request.sender.id)
+
+@login_required
+def decline_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id)
+    if friend_request.recipient != request.user.profile:
+        return HttpResponseForbidden('You are not authorized to decline this friend request')
+
+    Notice.objects.filter(request_for_friendship=friend_request).delete()
+    friend_request.delete()
+    return redirect('profile-view', id=friend_request.sender.id)
+
+@login_required
+def remove_friend(request, friend_id):
+    friend = get_object_or_404(Profile, id=friend_id)
+    friendship = Friendship.objects.filter(
+        (Q(user1=request.user.profile) & Q(user2=friend)) |
+        (Q(user1=friend) & Q(user2=request.user.profile))
+    ).first()
+
+    if not friendship:
+        return HttpResponseBadRequest('You are not friends with this user')
+
+    friendship.delete()
+    request.user.profile.friends.remove(friend)
+    return redirect('profile-view', id=friend.id)
+
+@login_required
+def all_notices(request):
+    notices = Notice.objects.filter(recipient=request.user.profile).order_by('-created_at')
+    return render(request, 'core_messanger/all_notices.html', {'notices': notices})
+
+@login_required
+@require_POST
+def mark_notice_as_read(request, notice_id):
+    notice = get_object_or_404(Notice, id=notice_id, recipient=request.user.profile)
+    notice.is_read = True
+    notice.save(update_fields=['is_read'])
+    return redirect('all-notices')
+
+@login_required
+@require_POST
+def delete_notice(request, notice_id):
+    notice = get_object_or_404(Notice, id=notice_id, recipient=request.user.profile)
+    notice.delete()
+    return redirect('all-notices')

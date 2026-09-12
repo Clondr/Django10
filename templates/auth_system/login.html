@@ -3,25 +3,23 @@
 {% block title %}Увійти{% endblock %}
 
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Увійти</h5>
+  <div class="mx-auto max-w-lg">
+      <div class="panel">
+        <div class="panel-body">
+          <h1 class="section-title">Увійти</h1>
           <form method="post">
             {% csrf_token %}
-            <div class="mb-3">
-              <label for="username" class="form-label">Ім'я користувача</label>
-              <input type="text" class="form-control" id="username" name="username" required>
+            <div class="field-group">
+              <label for="username" class="field-label">Ім'я користувача</label>
+              <input type="text" class="input-control" id="username" name="username" required>
             </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Пароль</label>
-              <input type="password" class="form-control" id="password" name="password" required>
+            <div class="field-group">
+              <label for="password" class="field-label">Пароль</label>
+              <input type="password" class="input-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">Увійти</button>
+            <button type="submit" class="button-primary">Увійти</button>
           </form>
         </div>
       </div>
-    </div>
   </div>
 {% endblock %}

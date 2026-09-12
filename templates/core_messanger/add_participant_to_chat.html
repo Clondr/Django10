@@ -2,14 +2,14 @@
 {% block title %} Додати учасника до чату {% endblock %}
 
 {% block content %}
-    <h1>Додати учасника до чату</h1>
-    <p>Чат: {{ chat.id }}</p>
-    <form method="post" action="{% url 'add-participant-to-chat' %}">
+    <h1 class="display-title">Додати учасника до чату</h1>
+    <p class="muted-copy">Чат: {{ chat.id }}</p>
+    <form class="panel panel-body form-stack max-w-xl" method="post" action="{% url 'add-participant-to-chat' %}">
         {% csrf_token %}
-        <div class="mb-3">
+        <div class="field-group">
             <input type="hidden" name="chat_id" value="{{ chat.id }}">
-            <label for="participant_id" class="form-label">Користувач</label>
-            <select class="form-select" id="participant_id" name="participant_id" required>
+            <label for="participant_id" class="field-label">Користувач</label>
+            <select class="input-control" id="participant_id" name="participant_id" required>
                 {% for user in users %}
                 <option value="{{ user.id }}">{{ user.user.username }}</option>
                 {% empty %}
@@ -17,6 +17,6 @@
                 {% endfor %}
             </select>
         </div>
-        <button type="submit" class="btn btn-primary"{% if not users %} disabled{% endif %}>Додати учасника</button>
+        <button type="submit" class="button-primary"{% if not users %} disabled{% endif %}>Додати учасника</button>
     </form>
 {% endblock %}
