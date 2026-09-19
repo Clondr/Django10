@@ -1,3 +1,50 @@
 from django.db import models
-
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+import os
 # Create your models here.
+class Comment(models.Model):
+    author = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.content[:25]  # Return the first 25 characters of the comment
+
+class Post(models.Model):
+    author = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    file = models.FileField(upload_to='post_files/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    comments = models.ManyToManyField(Comment, related_name='post_comments', blank=True)
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        old_file_name = None
+        if self.pk:
+            old_file_name = type(self).objects.filter(pk=self.pk).values_list('file', flat=True).first()
+
+        super().save(*args, **kwargs)
+
+        if old_file_name and old_file_name != self.file.name:
+            self.file.storage.delete(old_file_name)
+
+    def only_one_comment_on_user(self, user):
+        """
+        Check if the user has already commented on this post.
+        Returns True if the user has commented, False otherwise.
+        """
+        return self.comments.filter(author=user).exists()
+
+# Signal to delete the file when the Post instance is deleted
+@receiver(post_delete, sender=Post)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    """Удаляет файл с диска при удалении объекта из БД."""
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)

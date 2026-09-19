@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %} {{ post.title }} {% endblock %}
+
+{% block content %}
+    <article class="post-detail-layout">
+        <div class="post-detail-main">
+            <header class="post-detail-header">
+                <p class="eyebrow">Публікація</p>
+                <h1 class="display-title">{{ post.title }}</h1>
+                <div class="post-detail-author">
+                    {% if post.author.profile.avatar.name %}
+                        <img src="{{ post.author.profile.avatar.url }}" alt="Аватар {{ post.author.username }}" class="post-detail-avatar">
+                    {% else %}
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                    {% endif %}
+                    <span>від <strong>{{ post.author.username }}</strong></span>
+                </div>
+            </header>
+
+            <section class="post-content-block" aria-labelledby="post-content-title">
+                <h2 id="post-content-title" class="post-detail-section-title">Текст посту</h2>
+                <div class="post-content">{{ post.content|linebreaks }}</div>
+            </section>
+
+            
+        </div>
+
+        <aside class="post-detail-sidebar">
+            <section class="post-info-card" aria-label="Інформація про пост">
+                <div class="post-info-row"><span>Створено</span><time>{{ post.created_at }}</time></div>
+                <div class="post-info-row"><span>Оновлено</span><time>{{ post.updated_at }}</time></div>
+            </section>
+
+            <section class="post-attachment-card" aria-labelledby="attachment-title">
+                <h2 id="attachment-title" class="post-detail-section-title">Вкладення</h2>
+                {% if post.file %}
+                    {% if file_kind == 'image' %}
+                        <img src="{{ post.file.url }}" alt="Вкладення до посту" class="post-attachment-media">
+                    {% elif file_kind == 'video' %}
+                        <video controls preload="metadata" class="post-attachment-media"><source src="{{ post.file.url }}"></video>
+                    {% elif file_kind == 'audio' %}
+                        <audio controls preload="metadata" class="post-attachment-audio"><source src="{{ post.file.url }}"></audio>
+                    {% else %}
+                        <a class="post-document-link" href="{{ post.file.url }}"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>{{ post.file.name|cut:'post_files/' }}</span><i class="bi bi-download" aria-hidden="true"></i></a>
+                    {% endif %}
+                {% else %}
+                    <p class="muted-copy post-empty-attachment"><i class="bi bi-paperclip" aria-hidden="true"></i> Файл не додано</p>
+                {% endif %}
+            </section>
+
+            <div class="post-detail-actions">
+                {% if request.user == post.author %}
+                    <a href="{% url 'edit_post' post.id %}" class="button-primary"><i class="bi bi-pencil" aria-hidden="true"></i> Редагувати</a>
+                    <a href="{% url 'delete_post' post.id %}" class="button-danger"><i class="bi bi-trash3" aria-hidden="true"></i> Видалити</a>
+                {% else %}
+                    <a href="{% url 'create_comment' post.id %}" class="button-primary"><i class="bi bi-chat-left-text" aria-hidden="true"></i> Додати коментар</a>
+                {% endif %}
+            </div>
+            
+            <section class="post-comments-block" aria-labelledby="comments-title">
+                <div class="post-comments-heading">
+                    <h2 id="comments-title" class="post-detail-section-title">Коментарі</h2>
+                    <span class="post-comments-count">{{ post.comments.count }}</span>
+                </div>
+                {% for comment in post.comments.all %}
+                    <article class="post-comment">
+                        {% if comment.author.profile.avatar.name %}
+                            <img src="{{ comment.author.profile.avatar.url }}" alt="Аватар {{ comment.author.username }}" class="post-comment-avatar">
+                        {% else %}
+                            <i class="bi bi-person-circle post-comment-avatar-fallback" aria-hidden="true"></i>
+                        {% endif %}
+                        <div>
+                            <div class="post-comment-meta"><strong>{{ comment.author.username }}</strong><time>{{ comment.created_at }}</time></div>
+                            <p>{{ comment.content }}</p>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="muted-copy">Поки що коментарів немає.</p>
+                {% endfor %}
+            </section>
+        </aside>
+    </article>
+{% endblock %}

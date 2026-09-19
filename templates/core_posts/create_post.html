@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %} Створення нового посту {% endblock %}
+
+{% block content %}
+    <div class="post-editor-heading">
+        <div>
+            <p class="eyebrow">Нова публікація</p>
+            <h1 class="display-title">Створіть пост</h1>
+            <p class="lead-copy">Розкажіть, що вас надихає, і додайте файл, якщо він доповнює історію.</p>
+        </div>
+        <a class="button-outline post-editor-back" href="{% url 'post_list' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> До постів</a>
+    </div>
+    <form class="panel post-editor" method="post" action="{% url 'create_post' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="post-editor-main">{% include "core_posts/post_form_fields.html" %}</div>
+        <div class="post-editor-footer">
+            <span class="muted-copy"><i class="bi bi-shield-check" aria-hidden="true"></i> Пост буде опублікований від вашого імені.</span>
+            <button type="submit" class="button-primary"><i class="bi bi-send" aria-hidden="true"></i> Опублікувати</button>
+        </div>
+    </form>
+{% endblock %}

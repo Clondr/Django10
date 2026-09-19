@@ -54,6 +54,15 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme(getStoredTheme());
 
+    document.querySelectorAll('.post-form-file').forEach((input) => {
+        input.addEventListener('change', () => {
+            const fileName = input.closest('.post-file-drop')?.querySelector('[data-file-name]');
+            if (fileName) {
+                fileName.textContent = input.files[0]?.name || 'Натисніть, щоб вибрати вкладення';
+            }
+        });
+    });
+
     const groupMenu = document.querySelector('[data-group-menu]');
     const groupMenuOpen = document.querySelector('[data-group-menu-open]');
     const groupMenuBackdrop = document.querySelector('.group-menu-backdrop');
