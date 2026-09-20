@@ -4,6 +4,11 @@ import logging
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+
+@database_sync_to_async
+def get_user_profile(user):
+    return user.profile
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,6 +17,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         self.chat_id = self.scope["url_route"]["kwargs"]["chat_id"]
         self.group_name = f"chat_{self.chat_id}"
+        self.profile = await get_user_profile(self.user)
 
         # Пускаем только участников чата
         try:
@@ -25,9 +31,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        await self.broadcast_presence("online")
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
+            await self.broadcast_presence("offline")
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -35,6 +43,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             data = json.loads(text_data)
         except (TypeError, json.JSONDecodeError):
             await self.send(text_data=json.dumps({"error": "invalid json"}))
+            return
+
+        data_type = data.get("type")
+        if data_type == "typing":
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "chat.typing",
+                    "user_id": self.profile.id,
+                    "username": self.user.username,
+                    "is_typing": bool(data.get("is_typing", False)),
+                },
+            )
+            return
+
+        if data_type == "presence":
+            await self.broadcast_presence(data.get("status", "online"))
             return
 
         try:
@@ -63,6 +88,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "self_ciphertext": message.self_ciphertext or "",
                     "self_nonce": message.self_nonce or "",
                     "sender": message.sender.user.username,
+                    "sender_avatar": message.sender.avatar.url,
                     "timestamp": message.timestamp.strftime("%H:%M %d.%m.%Y"),
                 },
             },
@@ -70,6 +96,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps(event["message"]))
+
+    async def chat_typing(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "typing",
+            "user_id": event["user_id"],
+            "username": event["username"],
+            "is_typing": event["is_typing"],
+        }))
+
+    async def chat_presence(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "presence",
+            "user_id": event["user_id"],
+            "username": event["username"],
+            "status": event["status"],
+        }))
+
+    async def broadcast_presence(self, status):
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                "type": "chat.presence",
+                "user_id": self.profile.id,
+                "username": self.user.username,
+                "status": status,
+            },
+        )
 
     @database_sync_to_async
     def is_participant(self):
@@ -100,3 +153,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         chat.messages.add(message)
         return message
+
+
+class PostReactionConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+        self.post_id = self.scope["url_route"]["kwargs"]["post_id"]
+        self.group_name = f"post_reactions_{self.post_id}"
+
+        if not self.user.is_authenticated:
+            await self.close(code=4003)
+            return
+
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def reaction_update(self, event):
+        await self.send(text_data=json.dumps(event["reaction"]))

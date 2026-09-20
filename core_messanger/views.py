@@ -145,10 +145,20 @@ def send_message(request, chat_id):
 def delete_message(request, message_id):
     message = get_object_or_404(Message, id=message_id)
     chat = message.chats.first()
-    if request.user.profile == message.sender:
-        message.delete()
     if chat is None:
         return redirect('chat-list-view')
+
+    if request.user.profile not in chat.participants.all():
+        return redirect('home')
+
+    creator = get_chat_creator(chat)
+    is_sender = request.user.profile == message.sender
+    is_chat_creator = request.user.profile == creator
+
+    if not (is_sender or is_chat_creator):
+        return redirect('chat-view', chat_id=chat.id)
+
+    message.delete()
     return redirect('chat-view', chat_id=chat.id)
 
 @login_required
@@ -186,6 +196,19 @@ def edit_message(request, message_id):
     return render(request, 'core_messanger/edit_message.html', {
         'message': message,
         'recipient_public_key': other_participant.encryption_public_key,
+    })
+
+
+@login_required
+def chat_recipient_public_key(request, chat_id):
+    chat = get_object_or_404(Chat, id=chat_id)
+    if request.user.profile not in chat.participants.all():
+        return JsonResponse({'ok': False, 'error': 'not a participant'}, status=403)
+
+    recipient = chat.get_other_participant(request.user.profile)
+    return JsonResponse({
+        'ok': True,
+        'public_key': recipient.encryption_public_key if recipient else '',
     })
 
 

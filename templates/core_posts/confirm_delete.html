@@ -6,7 +6,7 @@
     <p class="muted-copy">Ви впевнені, що хочете видалити пост "{{ post.title }}"?</p>
     <form class="panel panel-body form-stack max-w-xl" method="post" action="{% url 'delete_post' post.id %}">
         {% csrf_token %}
-        <button type="submit" class="button-primary">Так, видалити</button>
+        <button type="submit" class="button-danger">Так, видалити</button>
         <a href="{% url 'post_list' %}" class="button-secondary">Скасувати</a>
     </form>
 {% endblock %}

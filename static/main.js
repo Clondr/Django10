@@ -256,20 +256,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         // Формы чата отправляются через WebSocket (chat-socket.js), не через HTTP
+        if (form.matches('[data-encrypted-message-form]')) return;
         if (form.dataset.websocketSend !== undefined) return;
         try {
             const keyPair = await encryptionReady;
             await registerEncryptionKey(form, keyPair.publicKey);
             const textField = form.querySelector('[name="content"]');
-            
-            if (!textField.value.trim() || !form.dataset.recipientPublicKey) {
-                status.textContent = 'Получатель еще не активировал шифрование';
+            const recipientPublicKey = await getFreshRecipientPublicKey(form);
+            if (!textField.value.trim()) {
+                status.textContent = 'Напишіть текст повідомлення';
                 return;
             }
-            const recipientPublicKey = safeParseJsonAttribute(form.dataset.recipientPublicKey);
             if (!recipientPublicKey) {
-                status.textContent = 'Некорректный публичный ключ получателя';
+                status.textContent = 'Получатель еще не активировал шифрование';
                 return;
             }
             const encrypted = await encryptMessage(
@@ -387,4 +388,31 @@ function safeParseJsonAttribute(value) {
     } catch (e) {
         return null;
     }
+}
+
+async function getFreshRecipientPublicKey(form) {
+    const existingKey = safeParseJsonAttribute(form.dataset.recipientPublicKey);
+    if (existingKey) return existingKey;
+
+    const chatId = form.dataset.chatId;
+    if (!chatId) return null;
+
+    try {
+        const response = await fetch(`/messanger/chat/${chatId}/recipient-public-key/`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const publicKey = safeParseJsonAttribute(data.public_key);
+        if (publicKey) {
+            form.dataset.recipientPublicKey = JSON.stringify(publicKey);
+            return publicKey;
+        }
+    } catch (error) {
+        console.warn('Не удалось обновить публичный ключ собеседника', error);
+    }
+
+    return null;
 }

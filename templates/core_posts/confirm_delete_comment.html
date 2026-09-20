@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %} Підтвердження видалення коментаря {% endblock %}
+
+{% block content %}
+    <h1 class="display-title">Підтвердження видалення</h1>
+    <p class="muted-copy">Ви впевнені, що хочете видалити коментар "{{ comment.content }}"?</p>
+    <form class="panel panel-body form-stack max-w-xl" method="post" action="{% url 'delete_comment' post.id comment.id %}">
+        {% csrf_token %}
+        <button type="submit" class="button-danger">Так, видалити</button>
+        <a href="{% url 'post_detail' post.id %}" class="button-secondary">Скасувати</a>
+    </form>
+{% endblock %}

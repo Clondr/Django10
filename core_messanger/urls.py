@@ -9,6 +9,7 @@ urlpatterns = [
     path('delete_chat/<int:chat_id>/', views.delete_chat, name='delete-chat'),
     path('edit_message/<int:message_id>/', views.edit_message, name='edit-message'),
     path('info_message/<int:message_id>/', views.show_info_about_message, name='show-info-about-message'),
+    path('chat/<int:chat_id>/recipient-public-key/', views.chat_recipient_public_key, name='chat-recipient-public-key'),
     path('chat/<int:chat_id>/', views.chat_view, name='chat-view'),
     path('search_user_for_chat/', views.search_user_for_chat, name='search-user-for-chat'),
     path('encryption/public-key/', views.register_public_key, name='register-public-key'),

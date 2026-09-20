@@ -1,5 +1,5 @@
 from django import forms
-from .models import Post
+from .models import Comment, Post
 
 class PostForm(forms.ModelForm):
     title = forms.CharField(
@@ -31,3 +31,19 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = ['title', 'content', 'file']
+
+class CommentForm(forms.ModelForm):
+    content = forms.CharField(
+        label='Коментар',
+        required=True,
+        help_text='Поділіться своїми думками або запитаннями.',
+        widget=forms.Textarea(attrs={
+            'class': 'comment-form-input comment-form-textarea',
+            'placeholder': 'Напишіть коментар...',
+            'rows': 4,
+        }),
+    )
+
+    class Meta:
+        model = Comment
+        fields = ['content']

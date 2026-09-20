@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %} Редагування коментаря {% endblock %}
+
+{% block content %}
+    <div class="comment-form-layout">
+        <div class="comment-form-heading">
+            <p class="eyebrow">Обговорення посту</p>
+            <h1 class="display-title">Редагуйте коментар</h1>
+            <p class="lead-copy">Оновіть текст коментаря та збережіть зміни.</p>
+        </div>
+        <form method="post" class="comment-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="form-error-summary" role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="comment-form-field{% if form.content.errors %} has-error{% endif %}">
+                <label class="comment-form-label" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+                {{ form.content }}
+                <div class="comment-form-meta">
+                    {% if form.content.help_text %}<small>{{ form.content.help_text }}</small>{% endif %}
+                    <span><i class="bi bi-chat-left-text" aria-hidden="true"></i> Будьте ввічливими</span>
+                </div>
+                {% for error in form.content.errors %}<div class="post-form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="comment-form-footer">
+                <a class="button-outline comment-form-cancel" href="{% url 'post_detail' post.id %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Назад до посту</a>
+                <button type="submit" class="button-primary"><i class="bi bi-check2" aria-hidden="true"></i> Зберегти зміни</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

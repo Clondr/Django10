@@ -8,6 +8,10 @@
             <p class="chat-eyebrow">{% if participants|length > 2 %}Група{% else %}Особистий чат{% endif %}</p>
             <h1>{% if participants|length > 2 %}Груповий чат{% else %}Чат з {{ other_participant.user.username }}{% endif %}</h1>
                 <span class="chat-participant-count"><i class="bi bi-people" aria-hidden="true"></i> {{ participants|length }} учасників</span>
+                <div class="chat-status" aria-live="polite">
+                    <span id="chat-status-dot" class="status-dot" aria-hidden="true" hidden></span>
+                    <span id="chat-status-text"></span>
+                </div>
         </div>
         <button type="button" class="btn-circle chat-group-toggle border border-teal-700/30 text-teal-800 dark:border-teal-300/30 dark:text-teal-200" data-group-menu-open aria-controls="group-menu" aria-expanded="false" aria-label="Відкрити властивості чату" title="Властивості чату">
             <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
@@ -130,8 +134,9 @@
         {% endfor %}
     </div>
 
-    <form class="form mt-auto pt-4" method="post" enctype="multipart/form-data" action="{% url 'send-message' chat.id %}"
+    <form class="chat-composer form mt-auto pt-4" method="post" enctype="multipart/form-data" action="{% url 'send-message' chat.id %}"
         data-encrypted-message-form data-key-url="{% url 'register-public-key' %}"
+        data-chat-id="{{ chat.id }}"
         data-recipient-public-key="{{ recipient_public_key|escape }}">
         {% csrf_token %}
         <div class="field-group">
@@ -156,5 +161,6 @@
 </div>
 {{ chat.id|json_script:"room-name" }}
 {{ request.user.profile.id|json_script:"my-profile-id" }}
-<script src="{% static 'chat-socket.js' %}?v=6"></script>
+{{ creator.id|json_script:"chat-creator-id" }}
+<script src="{% static 'chat-socket.js' %}?v=7"></script>
 {% endblock %}

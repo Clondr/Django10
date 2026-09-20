@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Post, Comment
-from .forms import PostForm
+from django.http import JsonResponse
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .models import Post, Comment, Reaction
+from .forms import PostForm, CommentForm
 # Create your views here.
 
 def get_file_kind(file):
@@ -10,7 +13,7 @@ def get_file_kind(file):
     if not file:
         return None
     name = file.name.lower()
-    image_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg')
+    image_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico')
     video_exts = ('.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv')
     audio_exts = ('.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus')
     if name.endswith(image_exts):
@@ -22,7 +25,6 @@ def get_file_kind(file):
     return 'document'
 
 
-@login_required
 def post_list(request):
     search_query = request.GET.get('q', '').strip()
     if search_query:
@@ -38,14 +40,24 @@ def post_list(request):
         'search_query': search_query,
     })
 
-@login_required
+
 def post_detail(request, post_id):
     # Logic to retrieve and display a specific post by its ID
     post = get_object_or_404(Post, id=post_id)
     file_kind = get_file_kind(post.file)
+    user_reaction = None
+    if request.user.is_authenticated:
+        user_reaction = post.reactions.filter(
+            user=request.user
+        ).values_list('reaction_type', flat=True).first()
     return render(request, 'core_posts/post_detail.html', {
         'post': post,
         'file_kind': file_kind,
+        'reaction_counts': {
+            'like': post.reactions.filter(reaction_type='like').count(),
+            'dislike': post.reactions.filter(reaction_type='dislike').count(),
+        },
+        'user_reaction': user_reaction,
     })
 
 @login_required
@@ -66,46 +78,114 @@ def create_post(request):
 def delete_post(request, post_id):
     # Logic to delete a specific post by its ID
     post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        post.delete()
-        return redirect('post_list')
-    return render(request, 'core_posts/confirm_delete.html', {'post': post})
+    if request.user != post.author:
+        return redirect('home')
+    else:
+        if request.method == 'POST':
+            post.delete()
+            return redirect('post_list')
+        return render(request, 'core_posts/confirm_delete.html', {'post': post})
 
 @login_required
 def edit_post(request, post_id):
     # Logic to edit a specific post by its ID
     post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        form = PostForm(request.POST, request.FILES, instance=post)
-        if form.is_valid():
-            form.save()
-            return redirect('post_detail', post_id=post.id)
+    if request.user != post.author:
+            return redirect('home')
     else:
-        form = PostForm(instance=post)
-    return render(request, 'core_posts/edit_post.html', {'form': form, 'post': post})
+        if request.method == 'POST':
+            form = PostForm(request.POST, request.FILES, instance=post)
+            if form.is_valid():
+                form.save()
+                return redirect('post_detail', post_id=post.id)
+        else:
+            form = PostForm(instance=post)
+        return render(request, 'core_posts/edit_post.html', {'form': form, 'post': post})
 
 @login_required
 def create_comment(request, post_id):
     # Logic to handle comment creation for a specific post
+    form = CommentForm(request.POST or None)
     post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        content = request.POST.get('content')
+    if request.user == post.author:
+        return render(request, 'core_posts/create_comment.html', {'post': post, 'error': 'You cannot comment on your own post.'})
+    else:
         if post.only_one_comment_on_user(request.user):
-            # User has already commented on this post, handle accordingly (e.g., show an error message)
             return render(request, 'core_posts/create_comment.html', {'post': post, 'error': 'You have already commented on this post.'})
-        if content:
-            comment = Comment.objects.create(author=request.user, content=content)
-            post.comments.add(comment)
-            return redirect('post_detail', post_id=post.id)
-    return render(request, 'core_posts/create_comment.html', {'post': post})
+        if request.method == 'POST':
+            content = request.POST.get('content')
+            if post.only_one_comment_on_user(request.user):
+                # User has already commented on this post, handle accordingly (e.g., show an error message)
+                return render(request, 'core_posts/create_comment.html', {'post': post, 'error': 'You have already commented on this post.'})
+            if content:
+                comment = Comment.objects.create(author=request.user, content=content)
+                post.comments.add(comment)
+                return redirect('post_detail', post_id=post.id)
+        return render(request, 'core_posts/create_comment.html', {'post': post, 'form': form})
 
 @login_required
 def delete_comment(request, post_id, comment_id):
     # Logic to delete a specific comment by its ID for a specific post
     post = get_object_or_404(Post, id=post_id)
     comment = get_object_or_404(Comment, id=comment_id)
+    if request.user != comment.author:
+        return redirect('home')
+    else:
+        if request.method == 'POST':
+            post.comments.remove(comment)
+            comment.delete()
+            return redirect('post_detail', post_id=post.id)
+        return render(request, 'core_posts/confirm_delete_comment.html', {'post': post, 'comment': comment})
+
+@login_required
+def edit_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    post = get_object_or_404(Post, comments=comment)
     if request.method == 'POST':
-        post.comments.remove(comment)
-        comment.delete()
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            return redirect('post_detail', post_id=post.id)
+    else:
+        form = CommentForm(instance=comment)
+    return render(request, 'core_posts/edit_comment.html', {'post': post, 'comment': comment, 'form': form})
+
+@login_required
+def react_to_post(request, post_id, reaction_type):
+    post = get_object_or_404(Post, id=post_id)
+    if request.method == 'POST':
+        valid_reactions = dict(Reaction.REACTION_CHOICES)
+        if reaction_type not in valid_reactions:
+            return JsonResponse({'error': 'Invalid reaction type.'}, status=400)
+
+        # Check if the user has already reacted to this post
+        existing_reaction = post.reactions.filter(user=request.user).first()
+        current_reaction = reaction_type
+        if existing_reaction:
+            # If the reaction type is the same, remove the reaction (toggle off)
+            if existing_reaction.reaction_type == reaction_type:
+                existing_reaction.delete()
+                current_reaction = None
+            else:
+                # Update the reaction type
+                existing_reaction.reaction_type = reaction_type
+                existing_reaction.save()
+        else:
+            # Create a new reaction
+            post.reactions.create(user=request.user, reaction_type=reaction_type)
+        reaction = {
+            'post_id': post.id,
+            'likes': post.reactions.filter(reaction_type='like').count(),
+            'dislikes': post.reactions.filter(reaction_type='dislike').count(),
+            'user_id': request.user.id,
+            'reaction_type': current_reaction,
+        }
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'post_reactions_{post.id}',
+            {'type': 'reaction.update', 'reaction': reaction},
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse(reaction)
         return redirect('post_detail', post_id=post.id)
-    return render(request, 'core_posts/confirm_delete_comment.html', {'post': post, 'comment': comment})
+    return JsonResponse({'error': 'POST required.'}, status=405)

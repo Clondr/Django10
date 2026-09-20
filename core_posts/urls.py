@@ -9,5 +9,6 @@ urlpatterns = [
     path('create_comment/<int:post_id>/', views.create_comment, name='create_comment'),
     path('delete_comment/<int:post_id>/<int:comment_id>/', views.delete_comment, name='delete_comment'),
     path('edit_post/<int:post_id>/', views.edit_post, name='edit_post'),
-    
+    path('edit_comment/<int:comment_id>/', views.edit_comment, name='edit_comment'),
+    path('react/<int:post_id>/<str:reaction_type>/', views.react_to_post, name='react_to_post'),
 ]
