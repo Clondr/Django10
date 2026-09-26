@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %} Лента {% endblock %}
+
+{% block content %}
+    {% load static %}
+    {% for post in recommended_posts %}
+    <article class="post-detail-layout">
+        <div class="post-detail-main">
+            <header class="post-detail-header">
+                <p class="eyebrow">Публікація</p>
+                <h1 class="display-title">{{ post.title }}</h1>
+                <div class="post-detail-author">
+                    <a href="{% url 'profile-view' post.author.id %}" class="button-secondary">Профіль автора</a>
+                    <a href="{% url 'post_detail' post.id %}" class="button-secondary">Деталі посту</a>
+                    {% if post.author.profile.avatar.name %}
+                        <img src="{{ post.author.profile.avatar.url }}" alt="Аватар {{ post.author.username }}" class="post-detail-avatar">
+                    {% else %}
+                        <i class="bi bi-person-circle" aria-hidden="true"></i>
+                    {% endif %}
+                    <span>від <strong>{{ post.author.username }}</strong></span>
+                    </a>
+                </div>
+            </header>
+
+            <section class="post-content-block" aria-labelledby="post-content-title">
+                <h2 id="post-content-title" class="post-detail-section-title">Текст посту</h2>
+                <div class="post-content">{{ post.content|truncatewords:30 }}</div>
+            </section>
+
+            
+        </div>
+
+        <aside class="post-detail-sidebar">
+            <section class="post-info-card" aria-label="Інформація про пост">
+                <div class="post-info-row"><span>Створено</span><time>{{ post.created_at }}</time></div>
+                <div class="post-info-row"><span>Оновлено</span><time>{{ post.updated_at }}</time></div>
+            </section>
+
+            <section class="post-attachment-card" aria-labelledby="attachment-title">
+                <h2 id="attachment-title" class="post-detail-section-title">Вкладення</h2>
+                {% if post.file %}
+                    {% if post.file_kind == 'image' %}
+                        <img src="{{ post.file.url }}" alt="Вкладення до посту" class="zoomable-img post-attachment-media">
+                    {% elif post.file_kind == 'video' %}
+                        <video controls preload="metadata" class="post-attachment-media"><source src="{{ post.file.url }}"></video>
+                    {% elif post.file_kind == 'audio' %}
+                        <audio controls preload="metadata" class="post-attachment-audio"><source src="{{ post.file.url }}"></audio>
+                    {% else %}
+                        <a class='post-attachment-link button-secondary' href="{{ post.file.url }}" download>Завантажити файл</a>
+                    {% endif %}
+                {% else %}
+                    <p>Вкладень немає.</p>
+                {% endif %}
+            </section>
+        </aside>
+    </article>
+    {% empty %}
+        <p>Рекомендованих публікацій поки немає.</p>
+    {% endfor %}
+    <script src="{% static 'posts.js' %}"></script>
+{% endblock %}

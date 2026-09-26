@@ -20,8 +20,10 @@
           <button type="submit" class="button-danger button-small">Видалити</button>
         </form>
           {% endif %}
-        <a href="{% url 'profile-view' notice.request_for_friendship.sender.id %}" class="button-primary button-small">Переглянути профіль</a>
-        <a href="{% url 'chat-view' notice.request_for_friendship.sender.id %}" class="button-primary button-small">Перейти до чату</a>
+        {% if notice.request_for_friendship %}
+          <a href="{% url 'profile-view' notice.request_for_friendship.sender.user.id %}" class="button-primary button-small">Переглянути профіль</a>
+          <a href="{% url 'create-chat' notice.request_for_friendship.sender.id %}" class="button-primary button-small">Перейти до чату</a>
+        {% endif %}
         <span class="text-muted float-right">{{ notice.created_at|date:"d M Y H:i" }}</span>
       </li>
     {% empty %}

@@ -83,6 +83,14 @@
             <i class="bi bi-plus-square" aria-hidden="true"></i>
             <span>Створити пост</span>
           </a>
+          <a class="sidebar-link" href="{% url 'all_subscriptions' %}">
+            <i class="bi bi-people" aria-hidden="true"></i>
+            <span>Підписки</span>
+          </a>
+          <a class="sidebar-link" href="{% url 'recommendation_for_user' %}">
+            <i class="bi bi-lightbulb" aria-hidden="true"></i>
+            <span>Рекомендації</span>
+          </a>
         {% else %}
           <a class="sidebar-link" href="{% url 'login' %}">
             <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>

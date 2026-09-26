@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %} Мої підписки {% endblock %}
+
+{% block content %}
+    <h1 class="display-title">Мої підписки</h1>
+    <section class="subscriptions-list">
+        {% if subscriptions %}
+            {% for subscription in subscriptions %}
+                <div class="post-meta flex items-center space-x-2">
+                    <li class="list-item chat-list-item">
+                    <p class="subscription-date">Дата підписки: {{ subscription.created_at }}</p>
+                    <p class="subscription-date">Підписка на: {{ subscription.user.username }}</p>
+                    <a href="{% url 'profile-view' subscription.user.id %}" class="button-secondary">Профіль користувача</a>
+                        {% if subscription.user.profile.avatar.name %}
+                            <img src="{{ subscription.user.profile.avatar.url }}" alt="Аватар {{ subscription.user.username }}" class="subscription-avatar">
+                        {% else %}
+                            <i class="bi bi-person-circle" aria-hidden="true"></i>
+                        {% endif %}
+                        <span>{{ subscription.user.username }}</span>
+                        <form method="post" action="{% url 'unsubscribe_from_user' subscription.user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="button-danger">Відписатися</button>
+                    </li>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Ви ще не підписані на жодного користувача.</p>
+        {% endif %}
+    </section>
+{% endblock %}

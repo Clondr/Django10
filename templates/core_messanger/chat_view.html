@@ -68,6 +68,9 @@
                         {% if can_manage_participants and participant != creator %}
                         <form method="post" action="{% url 'remove-participant-from-chat' chat.id participant.id %}">
                             {% csrf_token %}
+                            <a href="{% url 'profile-view' participant.user.id %}" class="participant-profile-link" aria-label="Переглянути профіль {{ participant.user.username }}" title="Переглянути профіль">
+                                <i class="bi bi-person-lines-fill" aria-hidden="true"></i>
+                            </a>
                             <button type="submit" class="button-danger button-small button-outline" aria-label="Видалити {{ participant.user.username }}" title="Видалити учасника">
                                 <i class="bi bi-person-dash" aria-hidden="true"></i>
                             </button>

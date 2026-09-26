@@ -9,12 +9,20 @@
                 <p class="eyebrow">Публікація</p>
                 <h1 class="display-title">{{ post.title }}</h1>
                 <div class="post-detail-author">
+                    {% if request.user != post.author %}
+                        <a href="{% url 'profile-view' post.author.id %}" class="button-secondary">Профіль автора</a>
+                        <form method="post" action="{% url 'subscribe_to_user' post.author.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="button-secondary">Підписатися</button>
+                        </form>
+                    {% endif %}
                     {% if post.author.profile.avatar.name %}
                         <img src="{{ post.author.profile.avatar.url }}" alt="Аватар {{ post.author.username }}" class="post-detail-avatar">
                     {% else %}
                         <i class="bi bi-person-circle" aria-hidden="true"></i>
                     {% endif %}
                     <span>від <strong>{{ post.author.username }}</strong></span>
+                    </a>
                 </div>
             </header>
 
@@ -35,8 +43,9 @@
             <section class="post-attachment-card" aria-labelledby="attachment-title">
                 <h2 id="attachment-title" class="post-detail-section-title">Вкладення</h2>
                 {% if post.file %}
+                 <a class='post-attachment-link button-secondary' href="{{ post.file.url }}" download>Завантажити файл</a>
                     {% if file_kind == 'image' %}
-                        <img src="{{ post.file.url }}" alt="Вкладення до посту" class="post-attachment-media">
+                        <img src="{{ post.file.url }}" alt="Вкладення до посту" class="zoomable-img post-attachment-media">
                     {% elif file_kind == 'video' %}
                         <video controls preload="metadata" class="post-attachment-media"><source src="{{ post.file.url }}"></video>
                     {% elif file_kind == 'audio' %}
@@ -101,4 +110,5 @@
         </aside>
     </article>
     <script src="{% static 'reaction-socket.js' %}?v=1"></script>
+    <script src="{% static 'posts.js' %}"></script>   
 {% endblock %}

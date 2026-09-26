@@ -64,3 +64,13 @@ class Reaction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} reacted with {self.reaction_type} to {self.post.title}"
+
+class Subscription(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='subscribers')
+    follower = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='following')
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = ('user', 'follower')  # Ensure a follower can subscripbe only once per user
+
+    def __str__(self):
+        return f"{self.follower.username} is following {self.user.username}"

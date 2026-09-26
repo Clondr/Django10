@@ -4,8 +4,10 @@ from django.db.models import Q
 from django.http import JsonResponse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from .models import Post, Comment, Reaction
+from .models import Post, Comment, Reaction, Subscription
 from .forms import PostForm, CommentForm
+from django.contrib.auth.models import User
+from core_profile.models import Notice
 # Create your views here.
 
 def get_file_kind(file):
@@ -39,7 +41,6 @@ def post_list(request):
         'posts': posts,
         'search_query': search_query,
     })
-
 
 def post_detail(request, post_id):
     # Logic to retrieve and display a specific post by its ID
@@ -189,3 +190,65 @@ def react_to_post(request, post_id, reaction_type):
             return JsonResponse(reaction)
         return redirect('post_detail', post_id=post.id)
     return JsonResponse({'error': 'POST required.'}, status=405)
+
+
+@login_required
+def subscribe_to_user(request, user_id):
+    if request.method == 'POST':
+        user_to_follow = get_object_or_404(User, id=user_id)
+        if user_to_follow == request.user:
+            return JsonResponse({'error': 'You cannot follow yourself.'}, status=400)
+        subscription, created = Subscription.objects.get_or_create(user=user_to_follow, follower=request.user)
+        if not created:
+            return JsonResponse({'error': 'You are already following this user.'}, status=400)
+        Notice.objects.create(
+            recipient=user_to_follow.profile,
+            type_notice='subscription',
+            message=f'{request.user.username} has subscribed to you.'
+        )
+        return JsonResponse({'message': f'You are now following {user_to_follow.username}.'})
+    return JsonResponse({'error': 'POST required.'}, status=405)
+
+@login_required
+def all_subscriptions(request):
+    subscriptions = Subscription.objects.filter(follower=request.user)
+    return render(request, 'core_posts/all_subscriptions.html', {'subscriptions': subscriptions})
+
+@login_required
+def unsubscribe_from_user(request, user_id):
+    if request.method == 'POST':
+        user_to_unfollow = get_object_or_404(User, id=user_id)
+        subscription = Subscription.objects.filter(user=user_to_unfollow, follower=request.user).first()
+        if subscription:
+            subscription.delete()
+            return JsonResponse({'message': f'You have unsubscribed from {user_to_unfollow.username}.'})
+        else:
+            return JsonResponse({'error': 'You are not following this user.'}, status=400)
+    return JsonResponse({'error': 'POST required.'}, status=405)
+
+@login_required
+def recommendation_for_user(request):
+    
+    # Get the current user's profile
+    user_profile = request.user.profile
+
+    # Get the friends of the current user
+    friends = user_profile.friends.all()
+
+    # Get the users that the current user is subscribed to
+    subscriptions = Subscription.objects.filter(follower=request.user).values_list('user', flat=True)
+
+    # Get posts from friends that the user hasn't commented on yet
+    recommended_posts = Post.objects.filter(
+        Q(author__profile__in=friends) | 
+        Q(author__profile__in=subscriptions)
+    ).exclude(
+        comments__author=request.user
+    ).distinct().order_by('-created_at')
+
+    for post in recommended_posts:
+        post.file_kind = get_file_kind(post.file)
+
+    return render(request, 'core_posts/ribbon.html', { 
+        'recommended_posts': recommended_posts,
+    })

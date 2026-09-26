@@ -11,4 +11,8 @@ urlpatterns = [
     path('edit_post/<int:post_id>/', views.edit_post, name='edit_post'),
     path('edit_comment/<int:comment_id>/', views.edit_comment, name='edit_comment'),
     path('react/<int:post_id>/<str:reaction_type>/', views.react_to_post, name='react_to_post'),
+    path('subscribe/<int:user_id>/', views.subscribe_to_user, name='subscribe_to_user'),
+    path('subscriptions/', views.all_subscriptions, name='all_subscriptions'),
+    path('unsubscribe/<int:user_id>/', views.unsubscribe_from_user, name='unsubscribe_from_user'),
+    path('recommendations/', views.recommendation_for_user, name='recommendation_for_user'),
 ]

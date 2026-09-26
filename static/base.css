@@ -736,3 +736,23 @@ body.dark-theme .context-menu-item {
 body.dark-theme .context-menu-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* Исходное состояние картинки */
+.zoomable-img {
+  max-width: 300px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Состояние во весь экран */
+.zoomable-img.zoomed {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  z-index: 1000;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8); /* Затемнение фона вокруг */
+}
